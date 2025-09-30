@@ -10,7 +10,7 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 ## 📂 Contenido
 
 ### MODULO I: Realización de tareas básicas de administración del sistema
-- Practica 1: Instalacion del Sistema Operativo (no lleva txt).
+- Practica 1: Instalacion del Sistema Operativo.
 - Practica 2: Configuración de parametros de red.
 - Practica 3: Gestion de Usuario y grupos.
 - Practica 4: Gestion de Permisos de archivos.
