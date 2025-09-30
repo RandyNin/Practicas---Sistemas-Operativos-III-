@@ -1,0 +1,252 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Instalacion del Sistema Operativo):
+
+=========================================================================================================================
+
+--- Comandos basicos del sistema ---
+
+- Listar contenido de un directorio:
+ls
+
+- Ver ruta actual:
+pwd
+
+- Cambiar al directorio **Downloads**:
+cd Downloads/
+
+- Cambiar a un directorio anterior:
+cd ..
+
+--- Configurancion del hostname de la maquina (matriculo sin guion) ---
+
+sudo hostnamectl set-hostname 20250660
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Configuración de parametros de red):
+
+=========================================================================================================================
+
+
+---- Ver interfacez ----
+
+ip a
+ifconfig
+nmcli device status
+
+
+---- Cambiar ip y mascara con **ip addr** (Temporal) ----
+
+sudo ip addr add 10.0.0.119/25 dev ens160
+
+- Borrarla:
+sudo ip addr del 10.0.0.119/25 dev ens160
+
+
+---- Asignar un gateway con **ip route** (Temporal) ----
+
+- Ver gateway actual ip route:
+ip route
+
+- Asignar un gateway:
+sudo ip route add default via 10.0.0.2 dev ens160
+
+- Borrar el gateway:
+sudo ip route del default
+
+
+---- Cambiar DNS ----
+
+- Editar este archivo:
+sudo nano /etc/resolv.conf
+
+- Cambiar:
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+
+
+---- Cambiar ip y mascara con **ifconfig** (Temporal) ----
+
+- Cambiar IP y mascara:
+sudo ifconfig ens160 10.0.0.119 netmask 255.255.255.128
+
+- Borrarla:
+sudo ifconfig ens160 0.0.0.0 netmask 0.0.0.0 
+
+- Reiniciar la interfaz:
+sudo ifconfig ens160 down
+sudo ifconfig ens160 up
+
+---- Asignar un gateway con **route** (Temporal) ----
+
+- Asignar un gateway:
+sudo route add default gw 10.0.0.2 ens160
+
+- Eliminar un gateway:
+sudo route del default gw 10.0.0.2 ens160
+
+- Ver gateway:
+ip route
+
+
+---- Configuraciones de red con **nmcli** (Permanente) ----
+
+- Cambiarlo a modo estatico:
+sudo nmcli con mod ens160 ipv4.method manual
+
+- Ver Cambios realizados (filtrar con grep por "GENERAL.MASTER-PATH" y -A 20 para ver las 20 lineas siguientes):
+nmcli con show ens160
+
+- Cambiar direccion IP:
+sudo nmcli con mod ens160 ipv4.addresses "10.0.0.119/25"
+
+- Cambiar gateway:
+sudo nmcli con mod ens160 ipv4.gateway "10.0.0.2"
+
+- Añadir Servidor DNS:
+sudo nmcli con mod ens160 +ipv4.dns 8.8.8.8 +ipv4.dns 8.8.4.4
+
+- Reiniciar la interfaz:
+sudo nmcli con down ens160
+sudo nmcli con up ens160
+
+- Revertir todos los cambios:
+sudo nmcli con mod ens160 ipv4.gateway '' -ipv4.addresses 10.0.0.119 -ipv4.dns 8.8.8.8 -ipv4.dns 8.8.4.4 ipv4.method auto
+
+- Es necesario reiniciar la interfaz:
+sudo nmcli con down ens160
+sudo nmcli con up ens160
+
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Gestion de Usuario y grupos):
+
+=========================================================================================================================
+
+---- Crear un usuario -----
+
+- Crear usuario:
+sudo useradd -m -s /bin/shell randynin
+
+- Ver usuarios en el sistema:
+cat /etc/passwd
+
+- Ver algunos parametros predeterminados de creacion de usuario:
+cat /etc/login.defs
+
+- Valores por defecto especifico del comando **useradd**:
+cat /etc/default/useradd
+
+- Iniciar sesion con el usuario **randynin**:
+su randynin
+
+- Establecer una contraseña para el usuario **randynin**:
+sudo passwd randynin
+
+- Agregar usuario al grupo wheel ('sudoers'):
+sudo usermod -aG wheel randynin
+
+
+---- Crear un grupo y añadir usuarios ----
+
+- Ver grupos creados en el sistema:
+cat /etc/group
+
+- Crear un grupo ('guest'): 
+sudo groupadd guest
+
+- Añadir un usuario al grupo ('guest'):
+sudo usermod -aG guest randynin
+
+- Eliminar usuario de un grupo:
+sudo gpasswd -d randynin guest
+
+
+---- Eliminar usuarios y grupos ----
+
+- Eliminar usuario ('-r' de manera recursiva):
+sudo userdel -r randynin
+
+- Eliminar grupo:
+sudo groupdel guest
+
+
+=========================================================================================================================
+
+# Comandos usados practica 4 (Gestion de Permisos de archivos):
+
+=========================================================================================================================
+
+
+---- Crear una capeta, archivo ----
+
+- Crear directorio ('materia'):
+mkdir materia
+
+- Moverse a directorio ('materia'):
+cd materia/
+
+- Crear archivo ('estudiante.txt'):
+touch estudiante.txt
+
+
+---- Editar un archivo con **vi** ----
+
+- Abrir un archivo con vi:
+vi estudiante.txt 
+
+- Ingresar a modo insertar (presionando 'a')
+
+- Volver al modo de navegacion (presionando 'esc')
+
+- Ingresar comandos (presionando ':')
+
+- Guardar (ingresar 'wq' y enter)
+
+- Ver contenido de un archivo:
+cat estudiante.txt 
+
+
+---- Modificar permisos ----
+
+- Ver permisos de los archivos:
+ls -l
+
+- Añadir permisos de ejecucion al usuario propietario:
+chmod u+x estudiante.txt 
+
+- Eliminar permisos de lectura al grupo propietario:
+chmod g-r estudiante.txt
+
+- Eliminar permisos de lectura a otros:
+chmod o-r estudiante.txt
+
+- Dar permisos totales solo al grupo propietario (notacion octal):
+chmod 070 estudiante.txt 
+
+
+---- Realizar una copia de un archivo a otro directorio ----
+
+- Crear directorio ('materia2'):
+mkdir materia2
+
+- Moverse al directorio ('materia2'):
+cd materia2
+
+- Copiar un archivo de un directorio a otro (copiar estudiante.txt de materia a materia2): 
+cp ../materia/estudiante.txt .
+
+
+---- Eliminar directorios con los archivos ----
+
+- Volver al directorio anterior:
+cd ..
+
+- Eliminar directorios ('-r' recursiva):
+rm -r materia
+rm -r materia2
+
