@@ -1,0 +1,191 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Gestión de Paquetes/Repositorios):
+
+=========================================================================================================================
+
+--- Actualizar repositorios y sistema ---
+
+- Comprobar si hay actualizaciones disponibles en los repositorios (no instala nada):
+$ sudo dnf check-update
+
+- Generar / actualizar la caché local de los repositorios:
+$ sudo dnf makecache
+
+- Actualizar paquetes instalados en el sistema (upgrade) y aceptar automáticamente:
+$ sudo dnf upgrade -y
+
+- Listar los repositorios habilitados y su estado:
+$ sudo dnf repolist
+
+
+--- Buscar Bashtop y preparar dependencias ---
+
+- Buscar en la caché de los repositorios si existe un paquete llamado "bashtop":
+$ sudo dnf search bashtop
+[!] -> Resultado de la práctica: bashtop no está disponible en los repositorios de Rocky/epel, por lo que se compiló desde el repositorio de GitHub.
+
+- Instalar el repositorio EPEL (necesario para paquetes adicionales en Rocky Linux):
+$ sudo dnf install epel-release -y
+
+- Instalar git (necesario para clonar repositorios desde GitHub):
+$ sudo dnf install git -y
+
+
+--- Instalación de Bashtop desde GitHub (compilación/local) ---
+
+- Clonar el repositorio oficial de Bashtop desde GitHub:
+$ git clone https://github.com/aristocratos/bashtop.git
+
+- Entrar al directorio del proyecto clonado:
+$ cd bashtop/
+
+- Instalar utilizando el Makefile proporcionado por el proyecto:
+$ sudo make install
+-> Comentario: este comando copia los binarios y archivos de la herramienta al sistema según lo definido en el Makefile del repo.
+
+- Comprobar la ubicación del ejecutable instalado:
+$ which bashtop
+
+- Ver la versión instalada de Bashtop:
+$ bashtop --version
+
+
+--- Desinstalación completa de Bashtop y limpieza ---
+
+- Desinstalar usando la regla uninstall del Makefile del proyecto:
+$ sudo make uninstall
+
+- Buscar en todo el sistema archivos cuyo nombre contenga "bashtop" (ignora errores de permisos):
+$ sudo find / -type f -iname "*bashtop*" 2>/dev/null
+
+- Eliminar la carpeta de configuración del usuario para Bashtop:
+$ rm -rf /home/randyn/.config/bashtop/
+
+- Eliminar paquetes/depencias huérfanas que ya no se usan:
+$ sudo dnf autoremove -y
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Programación De Tareas Automáticas):
+
+=========================================================================================================================
+
+--- Sintaxis crontabs ---
+
+* * * * * Comando/Script_a_ejecutar
+│ │ │ │ │
+│ │ │ │ └── Día de la semana (0-7, donde 0 y 7 = Domingo)
+│ │ │ └──── Mes (1-12)
+│ │ └────── Día del mes (1-31)
+│ └──────── Hora (0-23)
+└────────── Minuto (0-59)
+
+
+--- Crontab: ver/editar tareas ---
+
+- Ver las crontabs actuales del usuario:
+$ crontab -l
+
+- Ver las crontabs del root:
+$ sudo crontab -l
+
+- Editar las crontabs del root para añadir tareas programadas:
+$ sudo crontab -e
+
+- Líneas añadidas en crontab (tareas pedidas en la práctica):
+
+=== Dentro del editor de texto ==
+\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
+0 23 * * * /usr/bin/dnf makecache && /usr/bin/dnf upgrade -y
+- Comentario: actualiza la caché y actualiza el sistema todos los días a las 23:00 (11 p.m).
+
+0 3 * * 0 /usr/bin/reboot
+
+-> Comentario: reinicia la máquina todos los domingos a las 03:00 (3 a.m).
+/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+
+
+--- Tarea con at para limpiar /tmp ---
+
+- Listar contenido actual de /tmp antes de programar la tarea:
+$ ls /tmp/
+
+- Programar con at la eliminación del contenido de /tmp dentro de 1 minute:
+$ echo "rm -rf /tmp/*" | sudo at now + 1 minute
+-> Comentario: la línea anterior envía el comando rm -rf /tmp/* a at para que lo ejecute dentro de 1 minuto con permisos de root.
+
+- Ver el listado de tareas programadas con at:
+$ sudo atq
+
+- Listar contenido de /tmp después de la ejecución para comprobar resultado:
+$ ls /tmp/
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Administración de Discos):
+
+=========================================================================================================================
+
+--- Añadir disco en VMware (resumen de pasos realizados en la práctica) ---
+
+- Apagar la máquina virtual desde VMware.
+- Editar la configuración de la VM → Add... → Hard Disk → crear disco de 20GB → finalizar.
+- Encender la máquina virtual.
+
+
+--- Identificación del nuevo disco ---
+
+- Listar bloques/discos detectados por el sistema:
+$ lsblk
+
+- Ver particiones y discos con más detalle:
+$ sudo fdisk -l
+
+
+--- Formateo a ext4 ---
+
+- Formatear el nuevo disco/partición como ext4 (dispositivo usado en la práctica: /dev/nvme0n2):
+$ sudo mkfs.ext4 /dev/nvme0n2
+-> Comentario: mkfs.ext4 crea un sistema de archivos ext4 en el dispositivo indicado; borra cualquier dato previo en ese dispositivo.
+
+
+--- Montura de disco en el Escritorio ---
+
+- Crear carpeta en el escritorio para montar la partición:
+$ mkdir -p /home/randyn/Desktop/prueba_mount
+
+- Montar la partición en la carpeta creada:
+$ sudo mount /dev/nvme0n2 /home/randyn/Desktop/prueba_mount
+-> Comentario: mount asocia el dispositivo con el punto de montaje para acceder a su contenido desde el sistema de archivos.
+
+- Entrar al directorio montado:
+$ cd /home/randyn/Desktop/prueba_mount
+
+- Crear el archivo solicitado dentro del disco montado:
+$ touch AdrianAlcantara.txt
+
+- Listar el contenido para comprobar que el archivo existe:
+$ ls -l /home/randyn/Desktop/prueba_mount
+
+
+--- Desmontar y montar en /mnt ---
+
+- Desmontar la unidad:
+$ sudo umount /dev/nvme0n2
+
+- Ver el contenido de /mnt:
+$ ls /mnt/
+
+- Montar la misma partición en /mnt:
+$ sudo mount /dev/nvme0n2 /mnt/
+
+- Entrar a /mnt y comprobar que el archivo sigue presente:
+$ ls -l /mnt/
+
+
+
+
