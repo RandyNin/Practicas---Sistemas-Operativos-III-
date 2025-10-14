@@ -1,0 +1,216 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Configuración del menú GRUB2 y recuperación de la contraseña de root):
+
+=========================================================================================================================
+
+--- Editar tiempo de espera del menú GRUB2 ---
+
+- Abre el archivo de configuración de GRUB2 para editar parámetros globales.
+$ sudo vim /etc/default/grub
+
+- Define el tiempo (en segundos) que GRUB mostrará el menú antes de arrancar la entrada por defecto.
+Dentro de vim cambiar la línea:
+$ GRUB_TIMEOUT=20
+
+- Regenera el archivo de configuración usado por GRUB a partir de /etc/default/grub y otros scripts; aplica el nuevo timeout.
+$ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+- Muestra la línea en /etc/default/grub donde quedó el timeout (verificación rápida).
+$ grep '^GRUB_TIMEOUT' /etc/default/grub
+
+- Busca en grub.cfg la primera aparición de la opción timeout (comprobación de que la configuración se propagó).
+$ cat /boot/grub2/grub.cfg | grep -m1 timeout
+
+--- Recuperación de contraseña root vía GRUB (método usado) ---
+
+- (En el menú de GRUB) presionar 'e' sobre la entrada a editar
+Permite editar temporalmente los parámetros del kernel de esa entrada.
+
+- Hace que el sistema entre en un shell de rescate durante el arranque.
+Al final de la línea que empieza por 'linux' añadir:
+rd.break
+
+- Arranca con la modificación y abre la consola de emergencia.
+Iniciar la entrada con Ctrl+X
+
+- En la consola de emergencia ejecutar:
+
+- Remonta /sysroot en modo lectura/escritura para poder cambiar contraseñas y archivos.
+$ mount -o remount,rw /sysroot
+
+- Cambia la raíz efectiva al sistema instalado para ejecutar comandos como si se hubiera arrancado normalmente.
+$ chroot /sysroot
+
+- Permite establecer la nueva contraseña del usuario root.
+$ passwd root
+
+- Indica al sistema SELinux que reetiquete los archivos en el próximo arranque (si aplica).
+$ touch /.autorelabel
+
+- Sale del chroot y luego del shell de emergencia para continuar el arranque.
+$ exit
+$ exit
+
+- Verifica entrando como root con la nueva contraseña.
+$ su 
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Shell scripting):
+
+=========================================================================================================================
+
+--- Script: backup.sh (crea un tar con fecha y hora) ---
+
+- Abre el editor para crear/editar el script.
+$ vim backup.sh
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del script (explicado línea por línea):
+---------------------------------------------------------------------------------------------------------------
+#!/bin/bash
+- Shebang: indica que el script se ejecuta con bash.
+
+date=$(date +"%d-%m-%Y_%H-%M")
+- Guarda la fecha y hora actual en formato dd-mm-yyyy_HH-MM en la variable date.
+
+user=$(whoami)
+- Guarda el nombre del usuario que ejecuta el script.
+
+mkdir -p ~/back_up
+- Crea el directorio ~/back_up si no existe (-p evita error si ya existe).
+
+if [ "$user" != "root" ]; then
+    tar -cf /home/${user}/back_up/${date}.tar /home/${user}/* &>/dev/null && echo -e "\n[+] Backup realizado...\n"
+else
+    tar -cf /root/back_up/${date}.tar /root/* &>/dev/null && echo -e "\n[+] Backup realizado...\n"
+fi
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+- Crea un archivo tar con todo el contenido del directorio home del usuario ejecutor.
+  - `tar -cf` crea el fichero tar.
+  - La ruta incluye la variable ${date} para tener fecha/hora en el nombre.
+  - `&>/dev/null` silencia la salida; `&& echo` imprime confirmación si tuvo éxito.
+  - Usa ruta /root si el script se ejecuta como root.
+
+- Da permisos de ejecución al script.
+$ chmod +x backup.sh
+
+- Ejecuta el script; crea el archivo tar en ~/back_up con la fecha/hora en el nombre.
+$ ./backup.sh
+
+- Extraer el backup
+$ tar -xf ~/back_up/<archivo.tar>
+
+
+--- Script: ifconfig.sh (guarda salida de ifconfig en el Escritorio con nombre dado) ---
+
+- Abre el editor para crear/editar este script.
+$ vim ifconfig.sh
+---------------------------------------------------------------------------------------------------------------
+Contenido del script (explicado):
+---------------------------------------------------------------------------------------------------------------
+
+#!/bin/bash
+- Shebang para bash.
+
+ifconfig=$(ifconfig)
+- Ejecuta ifconfig y guarda toda su salida en la variable ifconfig_output.
+
+echo -e "\n[i] Introduzca el nombre del archivo:"
+read name
+- Pide al usuario el nombre del archivo y lo lee en la variable name.
+
+touch ~/Desktop/${name}
+- Crea un archivo vacío en el Escritorio con el nombre proporcionado.
+
+echo "$ifconfig" > ~/Desktop/${name}
+- Escribe la salida de ifconfig dentro del archivo creado (sobrescribe si existe).
+
+echo -e "\n[+] Archivo creado en ~/Desktop/${name}\n"
+- Mensaje de confirmación.
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+- Da permisos de ejecución al script.
+$ chmod +x ifconfig.sh
+
+- Ejecuta el script; se preguntará el nombre y se generará el archivo en el Escritorio.
+$ ./ifconfig.sh
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Redes / SSH):
+
+=========================================================================================================================
+
+--- Configuración de la VM en modo Bridge y comprobación desde host Windows ---
+
+- Permite que la VM reciba una IP en la misma red que el host, accesible desde la máquina Windows.
+(En VMware) Cambiar adaptador de red a "Bridged"
+
+- Comprueba conectividad ICMP al IP de la VM; respuesta positiva indica alcance desde el host.
+Desde Windows (cmd/PowerShell):
+$ ping 10.0.0.249
+
+
+--- Habilitar y arrancar el servicio SSH en Rocky Linux ---
+
+- Activa el servicio sshd para que inicie automáticamente en cada arranque e incia inmediatamente.
+$ sudo systemctl enable sshd --now
+
+- Muestra el estado del servicio (activo, fallas, puerto escuchando).
+$ sudo systemctl status sshd
+
+--- Conexión por contraseña desde Windows  ---
+
+- Establece conexión SSH con el usuario; pedirá la contraseña del usuario remoto.
+$ ssh randyn@10.0.0.249
+
+- Comando ejecutado en la sesión remota para comprobar el usuario con el que estamos conectados.
+$ whoami
+
+- Muestra interfaces y direcciones IP en la VM (verificación dentro de la sesión remota).
+$ ip a
+
+
+--- Generar par de llaves en Windows (PowerShell) sin passphrase ---
+
+$ ssh-keygen
+
+--- Copiar la llave pública al servidor ---
+
+- Copia la clave pública y la añade a ~/.ssh/authorized_keys en el servidor (pide contraseña la primera vez).
+Opción A (si está disponible): 
+$ ssh-copy-id -i C:\ruta\para\llaves\id_ed25519.pub randyn@10.0.0.249
+
+- Sube el fichero .pub a /home/randyn en la VM (pedirá contraseña).
+Opción B: copiar manual con scp desde Windows:
+$ scp C:\Users\randy\.ssh\id_ed25519.pub randyn@10.0.0.249:/home/randyn/id_ed25519.pub
+
+- Crea el directorio .ssh si no existe.
+En el servidor (sesión por contraseña) preparar authorized_keys:
+$ mkdir -p ~/.ssh
+
+- Añade la clave pública al archivo authorized_keys (permite autenticación por clave).
+$ cat ~/id_ed25519.pub >> ~/.ssh/authorized_keys
+
+- Establece permisos correctos en el directorio .ssh (solo dueño puede acceder).
+$ chmod 700 ~/.ssh
+
+- Establece permisos correctos en authorized_keys (solo lectura/escritura del dueño).
+$ chmod 600 ~/.ssh/authorized_keys
+
+- Limpia el archivo temporal subido al home.
+$ rm ~/id_ed25519.pub
+
+--- Probar la conexión sin contraseña desde Windows ---
+
+- Conecta de manera normal por shh; si todo está correcto no pedirá contraseña y abrirá la sesión.
+ssh randyn@10.0.0.249
+
+=========================================================================================================================
