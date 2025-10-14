@@ -211,6 +211,7 @@ $ rm ~/id_ed25519.pub
 --- Probar la conexión sin contraseña desde Windows ---
 
 - Conecta de manera normal por shh; si todo está correcto no pedirá contraseña y abrirá la sesión.
-ssh randyn@10.0.0.249
+$ ssh randyn@10.0.0.249
 
 =========================================================================================================================
+
