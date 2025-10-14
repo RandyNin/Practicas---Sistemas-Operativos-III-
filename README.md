@@ -16,11 +16,14 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 - Practica 4: Gestion de Permisos de archivos.
 
 ### MODULO II: Sistemas operativos en ejecución
-- Practica 1: Gestión de Paquetes/Repositorios en Rocky Linux.
-- Practica 2: Programación De Tareas Automaticas en Rocky Linux.
-- Practica 3: Administración de Discos en Rocky Linux.
+- Practica 1: Gestión de Paquetes/Repositorios.
+- Practica 2: Programación De Tareas Automaticas.
+- Practica 3: Administración de Discos.
 
 ### MODULO II: Tareas avanzadas y administracion de servicios de Red
-- Practica 1: Configuración del menú GRUB2 y recuperación de la contraseña de root en Rocky Linux.
-- Practica 2: Shell scripting en Rocky Linux.
-- Practica 3: Manejo de SSH en Rocky Linux.
+- Practica 1: Configuración del menú GRUB2 y recuperación de la contraseña de root.
+- Practica 2: Shell scripting.
+- Practica 3: Manejo de SSH.
+
+---
+❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux
