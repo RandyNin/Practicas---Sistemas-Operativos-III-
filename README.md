@@ -20,10 +20,15 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 - Practica 2: Programación De Tareas Automaticas.
 - Practica 3: Administración de Discos.
 
-### MODULO II: Tareas avanzadas y administracion de servicios de Red
+### MODULO III: Tareas avanzadas y administracion de servicios de Red
 - Practica 1: Configuración del menú GRUB2 y recuperación de la contraseña de root.
 - Practica 2: Shell scripting.
 - Practica 3: Manejo de SSH.
+
+### MODULO IV: Tareas avanzadas y administracion de servicios de Red
+- Practica 1: Instalar un servidor HTTP apache2/nginx .
+- Practica 2: Instalar un servidor de correos.
+- Practica 3: Instalar un servidor de Impresion.
 
 ---
 ❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux
