@@ -1,0 +1,306 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Instalar un servidor HTTP apache2/nginx):
+
+=========================================================================================================================
+
+--- Instalación y gestión del servicio Apache (httpd) ---
+
+- Instala Apache (httpd) en Rocky Linux.
+$ sudo dnf install httpd -y
+
+- Muestra el estado actual del servicio httpd (activo/inactivo).
+$ sudo systemctl status httpd
+
+- Habilita el servicio para que arranque al boot e inicia el servicio ahora mismo.
+$ sudo systemctl enable httpd --now
+
+
+--- Archivo de configuración principal de Apache ---
+
+- Abre el archivo principal de Apache para revisar/directivas globales.
+$ sudo vim /etc/httpd/conf/httpd.conf
+
+--> Explicación de diferentes parametros globales:
+
+- ServerRoot: ruta base de configuración de Apache.
+- Listen 80: puerto por defecto donde Apache escucha (necesario para virtualhosts en :80).
+- DocumentRoot: carpeta por defecto para contenido web.
+- Directivas <Directory>: control de permisos de acceso a directorios.
+- IncludeOptional conf.d/*.conf: permite cargar archivos individuales de virtualhosts (como randy80.conf y randy8080.conf).
+
+
+--- Crear VirtualHost en el puerto 80 (Website "Hola Mundo") ---
+
+- Crea el archivo de configuración del virtualhost para el puerto 80.
+$ sudo vim /etc/httpd/conf.d/randy80.conf
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo de configuracion del virtual host (puerto 80):
+---------------------------------------------------------------------------------------------------------------
+# Listen 80   (se añade sólo si no está definido globalmente)
+<VirtualHost *:80>
+    ServerName randy80.com
+    DocumentRoot /var/www/randy80
+</VirtualHost>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: se añadió un VirtualHost que escucha en :80 y apunta a /var/www/randy80.
+
+- Crea la carpeta que será el DocumentRoot del sitio.
+$ sudo mkdir -p /var/www/randy80
+
+- Entra a la carpeta (opcional, para crear el index).
+$ cd /var/www/randy80
+
+- Edita/crea la página index del sitio.
+$ sudo vim index.html
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo html (puerto 80): 
+---------------------------------------------------------------------------------------------------------------
+<h1>Hola Mundo</h1>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: index.html contiene la frase solicitada "Hola Mundo" que se servirá al acceder por el virtualhost en el puerto 80.
+
+- Reinicia Apache para aplicar la nueva configuración.
+$ sudo systemctl restart httpd
+
+
+--- Crear VirtualHost en el puerto 8080 (Website con nombre, matrícula y materia) ---
+
+- Crea el archivo de configuración del virtualhost que usará el puerto 8080.
+$ sudo vim /etc/httpd/conf.d/randy8080.conf
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo de configuracion del virtual host (puerto 8080):
+---------------------------------------------------------------------------------------------------------------
+Listen 8080
+<VirtualHost *:8080>
+    ServerName randy8080.com
+    DocumentRoot /var/www/randy8080
+</VirtualHost>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: se añadió Listen 8080 para que Apache escuche en ese puerto y se definió un VirtualHost que sirve contenido desde /var/www/randy8080.
+
+- Crea la carpeta para el sitio en 8080.
+$ sudo mkdir -p /var/www/randy8080
+
+- Entra a la carpeta (opcional).
+$ cd /var/www/randy8080
+
+- Edita/crea la página index con tu nombre, matrícula y materia.
+$ sudo vim index.html
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo html (puerto 8080):
+---------------------------------------------------------------------------------------------------------------
+<html>
+  <head>
+    <title>Apache 8080</title>
+  </head>
+  <body>
+    <h1> Randy Lorenzo Nin Medina </h1>
+    <p>2025-0660</p>
+    <p>Sistemas Operativos 3</p>
+  </body>
+</html>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: index.html para el VirtualHost en :8080 contiene la información personal requerida por la práctica.
+
+- Reinicia Apache para aplicar cambios de virtualhosts y puertos.
+$ sudo systemctl restart httpd
+
+
+--- Firewall y verificación ---
+
+- Abre la regla del servicio HTTP (puerto 80) en firewalld permanentemente.
+$ sudo firewall-cmd --add-service=http --permanent
+
+- Abre el puerto 8080 en firewalld permanentemente.
+$ sudo firewall-cmd --add-port=8080/tcp --permanent
+
+- Recarga firewalld para aplicar las reglas nuevas.
+$ sudo firewall-cmd --reload
+
+- Lista puertos abiertos actualmente (verificar 80 y 8080).
+$ sudo firewall-cmd --list-ports
+
+- Prueba de acceso desde el navegador local:
+# http://localhost:80  --> debe mostrar "Hola Mundo"
+# http://localhost:8080 --> debe mostrar tu nombre, matrícula y materia
+
+- Prueba acceso desde otra máquina usando la IP del servidor:
+# http://<IP_DEL_SERVIDOR>:80 --> Muestra pagina con contenido (Hola Mundo)
+# http://<IP_DEL_SERVIDOR>:8080 --> Muestra pagina con contenido (nombre, matricula y materia)
+
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Instalar un servidor de correos - Postfix y envío):
+
+=========================================================================================================================
+
+--- Instalación de Postfix y cliente de envío ---
+
+- Instala Postfix (MTA) y s-nail (cliente para enviar correos desde consola).
+$ sudo dnf install postfix s-nail -y
+
+- Comprueba el estado del servicio Postfix.
+$ sudo systemctl status postfix
+
+
+--- Editar la configuración principal de Postfix ---
+
+- Abre el archivo main.cf para modificar parámetros de Postfix.
+$ sudo vim /etc/postfix/main.cf
+
+---------------------------------------------------------------------------------------------------------------
+Cambiamos / Agregamos lo siguiente:
+---------------------------------------------------------------------------------------------------------------
+# Fragmento con los parámetros cambiados/agregados
+myhostname = randy.com
+myorigin = $myhostname
+inet_interfaces = all
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+mynetworks = 10.0.0.0/24, 192.168.153.0/24, 127.0.0.0/8
+
+# Relay SMTP (Gmail)
+relayhost = [smtp.gmail.com]:587
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: ajustes realizados:
+- myhostname/myorigin: definen el dominio de origen de los correos.
+- inet_interfaces=all: hace que Postfix acepte conexiones desde la red.
+- mynetworks: define redes permitidas.
+- relayhost: y parámetros SASL configuran Postfix para usar Gmail como relay autenticado.
+
+
+--- Archivo de credenciales para el relay (Gmail) ---
+
+- Crea/edita el archivo con las credenciales (correo:app-password).
+$ sudo vim /etc/postfix/sasl_passwd
+
+---------------------------------------------------------------------------------------------------------------
+Agregamos lo siguiente (cambiamos el correo y app password por la que corresponde):
+---------------------------------------------------------------------------------------------------------------
+# Formato: [servidor]:puerto usuario:app-password
+[smtp.gmail.com]:587 tu-correo@gmail.com:APP_PASSWORD_GENERADA
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+-> Explicación: contiene la cuenta y app-password que Postfix usará para autenticarse con smtp.gmail.com.
+
+- Convierte el archivo a la base de datos que Postfix lee.
+$ sudo postmap /etc/postfix/sasl_passwd
+
+- Asegura permisos restrictivos en el archivo de credenciales y su .db.
+$ sudo chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+
+- Habilita y arranca Postfix inmediatamente.
+$ sudo systemctl enable postfix --now
+
+
+--- Preparar cuerpo del correo y envío ---
+
+- Crea el archivo con el cuerpo del correo.
+$ sudo vim email.txt
+
+---------------------------------------------------------------------------------------------------------------
+Agregamos el cuerpo del email:
+---------------------------------------------------------------------------------------------------------------
+Nombre: Randy Nin
+Matricula: 2025-0660
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+-> Explicación: archivo que contiene el mensaje que se enviará al docente.
+
+- Envía el correo usando s-nail (mail) con asunto y destinatario solicitados.
+$ mail -s "MambruSeFueALaGuerra" os3conadrian@gmail.com < email.txt
+
+- Revisa los logs de correo para detectar errores de envío o conexión al relay.
+$ sudo tail -n 200 /var/log/maillog
+
+- Nota: para usar smtp.gmail.com es necesario crear una App Password en la cuenta Google (si tiene 2FA) en:
+# https://myaccount.google.com/apppasswords
+
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Instalar servidor de impresión CUPS y CUPS-PDF):
+
+=========================================================================================================================
+
+--- Instalación y arranque de CUPS y cups-pdf ---
+
+- Instala CUPS y la impresora virtual cups-pdf que genera PDFs.
+$ sudo dnf install cups cups-pdf -y
+
+- Habilita y arranca CUPS ahora y al inicio.
+$ sudo systemctl enable cups --now
+
+- Muestra el estado del servicio CUPS.
+$ sudo systemctl status cups
+
+--- Editar configuración de CUPS para permitir acceso desde la red local ---
+
+- Abre el archivo de configuración de CUPS.
+$ sudo vim /etc/cups/cupsd.conf
+
+---------------------------------------------------------------------------------------------------------------
+Cambiamos / Agregamos lo siguiente:
+---------------------------------------------------------------------------------------------------------------
+# Fragmentos modificados en cupsd.conf
+# Escucha en localhost únicamente (ejemplo); cambiar a 0.0.0.0:631 si se desea acceso desde cualquier interfaz
+Listen localhost:631
+
+<Location />
+  Order allow,deny
+  Allow @LOCAL
+</Location>
+
+<Location /admin>
+  Order allow,deny
+  Allow @LOCAL
+  AuthType Default
+  Require user @SYSTEM
+</Location>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: cambios:
+- Listen define la interfaz/puerto donde CUPS escucha.
+- Allow @LOCAL permite acceso desde la red local.
+- /admin requiere autenticación para tareas administrativas.
+
+- Reinicia CUPS para aplicar la nueva configuración.
+$ sudo systemctl restart cups
+
+- Abre el puerto 631 (CUPS) en el firewall permanentemente.
+$ sudo firewall-cmd --add-port=631/tcp --permanent
+
+- Recarga firewalld para aplicar cambios.
+$ sudo firewall-cmd --reload
+
+
+--- Agregar impresora cups-pdf y conectar desde el cliente Windows ---
+
+- En el cliente Windows: agregar impresora usando la URL compartida de CUPS:
+# http://<IP_DEL_SERVIDOR>:631/printers/Cups-PDF
+# Al agregar manualmente seleccionar driver genérico si no hay driver específico.
+
+- Realizar prueba de impresión desde Windows: imprimir un .docx hacia la impresora añadida; el PDF resultante aparecerá en:
+$ ls -l /var/www/cups-pdf/ANONYMOUS/
+# Abrir el PDF en el servidor para verificar la impresión.
+
+
+- Si cups-pdf no se añade automáticamente, ejemplo para crear una impresora manual con lpadmin (opcional):
+$ sudo lpadmin -p Cups-PDF -E -v file:/var/spool/cups-pdf -m raw
+
+
