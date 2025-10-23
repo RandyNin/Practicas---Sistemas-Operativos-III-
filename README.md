@@ -31,4 +31,4 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 - Practica 3: Instalar un servidor de Impresion.
 
 ---
-❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux
+❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux 9
