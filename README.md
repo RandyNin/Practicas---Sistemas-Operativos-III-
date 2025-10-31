@@ -30,5 +30,10 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 - Practica 2: Instalar un servidor de correos.
 - Practica 3: Instalar un servidor de Impresion.
 
+### MODULO V: Tareas avanzadas y administracion de servicios de Red
+- Practica 1: Sincronización de carpetas con Rsync.
+- Practica 2: Instalación y configuración del Cluster.
+- Practica 3: Cluster de Alta Disponibilidad HTTP.
+
 ---
-❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux 9
+❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux 
