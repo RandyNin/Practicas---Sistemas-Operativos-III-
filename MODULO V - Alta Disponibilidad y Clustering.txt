@@ -1,0 +1,325 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Sincronización de carpetas con Rsync):
+
+=========================================================================================================================
+
+--- Configuración inicial y sincronización en servidor primario ---
+
+# -> En server primario:
+
+- Creamos carpeta a sincronizar.
+$ mkdir DirSync
+
+- Creando los 100 archivos a sincronizar.
+$ touch prueba{1..100}
+
+- Sincronizar la carpeta con el servidor remoto.
+$ rsync -avz /home/randyn/DirSync/ randyn@192.168.153.139:/home/randyn/Dirserv2
+
+--> Explicación de flags: 
+- -a: sincroniza archivos preservando permisos, timestamps y estructura.
+- -v: modo verbose (muestra detalles de la operación).
+- -z: comprime los datos durante la transmisión.
+
+
+--- Verificación en servidor remoto ---
+
+# -> En server remoto:
+
+- Ver cómo los archivos se han sincronizado en el servidor remoto.
+$ cd Dirserv2
+$ ls
+
+
+--- Prueba de sincronización con modificación de archivo ---
+
+# -> En server primario:
+
+- Modificamos un archivo en la carpeta sincronizada.
+$ vim prueba20
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo:
+---------------------------------------------------------------------------------------------------------------
+PROBANDO SINCRONIZACION
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+- Sincronizamos la carpeta nuevamente.
+$ rsync -avz /home/randyn/DirSync/ randyn@192.168.153.139:/home/randyn/Dirserv2
+
+
+# -> En server remoto:
+
+- Vemos nuevamente cómo se sincronizó la carpeta.
+$ ls
+
+
+--- Configuración de autenticación SSH sin contraseña ---
+
+# -> En server primario:
+
+- Copiamos la llave pública de SSH en el server remoto.
+$ ssh-copy-id randyn@192.168.153.139
+
+--> Explicación: esto permite sincronizar sin pedir contraseña, necesario para la automatización con cron.
+
+- Creamos más archivos en la carpeta sincronizada.
+$ touch adrian{1..10}
+
+- Sincronizamos la carpeta nuevamente.
+$ rsync -avz /home/randyn/DirSync/ randyn@192.168.153.139:/home/randyn/Dirserv2
+
+
+# -> En server remoto:
+
+- Vemos cómo se sincronizó nuevamente.
+$ ls
+
+
+--- Automatización con script y crontab ---
+
+# -> En server primario:
+
+- Creamos un script que sincronice las carpetas.
+$ vim /home/randyn/sync.sh
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del script:
+---------------------------------------------------------------------------------------------------------------
+rsync -avz /home/randyn/DirSync/ randyn@192.168.153.139:/home/randyn/Dirserv2
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+- Creamos una crontab que ejecute el script cada minuto.
+$ crontab -e
+
+---------------------------------------------------------------------------------------------------------------
+Contenido de la crontab:
+---------------------------------------------------------------------------------------------------------------
+* * * * * /home/randyn/sync.sh
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: * * * * * significa ejecutar cada minuto (minuto, hora, día, mes, día de semana).
+
+- Creamos archivos dentro de la carpeta compartida.
+$ touch sinc{1..200}
+
+
+--- Verificación de sincronización automática ---
+
+# -> En server remoto:
+
+- Pasado el minuto vemos cómo se sincronizó la carpeta automáticamente.
+$ ls
+
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Instalación y configuración del Cluster con Pacemaker):
+
+=========================================================================================================================
+
+--- Preparación de repositorios y resolución de nombres ---
+
+# -> En ambos nodos/servidores:
+
+- Habilitamos los repositorios (crb y highavailability) para poder instalar pacemaker y pcs.
+$ sudo dnf config-manager --set-enabled crb
+$ sudo dnf config-manager --set-enabled highavailability
+
+- Editamos el archivo '/etc/hosts' para referirnos a los nodos con nombres y se resuelvan a sus direcciones IP.
+$ sudo vim /etc/hosts
+
+---------------------------------------------------------------------------------------------------------------
+Líneas a añadir en el '/etc/hosts':
+---------------------------------------------------------------------------------------------------------------
+192.168.153.128 server-a
+192.168.153.139 server-b
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+
+--- Instalación y configuración de Pacemaker y PCS ---
+
+- Instalamos pacemaker y pcs.
+$ sudo dnf install pacemaker pcs -y
+
+- Habilitamos el servicio/demonio de pcs.
+$ sudo systemctl enable pcsd --now
+
+- Permitir el servicio de 'high-availability' en el firewall.
+$ sudo firewall-cmd --add-service=high-availability --permanent
+$ sudo firewall-cmd --reload
+
+- Configuramos una contraseña para el usuario hacluster (lo van a usar los nodos para autenticarse en el cluster).
+$ sudo passwd hacluster
+
+--> Nota: La contraseña debe ser la misma en ambos nodos.
+
+
+--- Creación y arranque del cluster ---
+
+# -> En uno de los nodos/servidores:
+
+- Autenticamos los nodos para que puedan ser añadidos al cluster.
+$ sudo pcs host auth server-a server-b -u hacluster -p '1234'
+
+- Creamos el cluster y añadimos los nodos a este.
+$ sudo pcs cluster setup myCluster server-a server-b
+
+- Ver estado del cluster.
+$ sudo pcs cluster status
+
+- Habilitamos/Arrancamos el cluster si no está activo.
+$ sudo pcs cluster start --all
+
+
+--- Configuración de propiedades del cluster ---
+
+# -> En ambos nodos/servidores:
+
+- Deshabilitamos el STONITH (Shoot The Other Node In The Head).
+$ sudo pcs property set stonith-enabled=false
+
+--> Explicación: STONITH se deshabilita para entornos de prueba; en producción protege contra split-brain.
+
+- Configuramos política de no quorum.
+$ sudo pcs property set no-quorum-policy=ignore
+
+--> Explicación: permite que el cluster funcione aunque no haya quorum (útil para clusters de 2 nodos).
+
+
+--- Configuración de IP virtual (VIP) ---
+
+# -> En el servidor que estábamos configurando anteriormente:
+
+- Creamos y configuramos la Virtual IP Address (VIP).
+$ sudo pcs resource create vip ocf:heartbeat:IPaddr2 ip=192.168.153.100 cidr_netmask=24 op monitor interval=30s
+
+--> Explicación: la VIP es la IP flotante que se moverá entre nodos según disponibilidad; se monitorea cada 30 segundos.
+
+
+# -> En uno de los nodos/servidores:
+
+- Habilitamos el servicio de pacemaker.
+$ sudo systemctl enable pacemaker --now
+
+
+--- Verificación del cluster ---
+
+- Ya podemos hacer la prueba haciendo ping constante a la VIP y ver cómo el ping se mantiene.
+
+- Comando de ping constante en Windows:
+> ping -t 192.168.153.100
+
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Cluster de Alta Disponibilidad HTTP con Keepalived):
+
+=========================================================================================================================
+
+--- Instalación y configuración del servidor web Apache ---
+
+# -> En ambos nodos/servidores:
+
+- Instalar el servidor web (Apache).
+$ sudo dnf install httpd -y
+
+- Habilitamos el servicio de Apache.
+$ sudo systemctl enable httpd --now
+
+- Creamos una página web que esté en escucha por el puerto 80.
+$ sudo vim /var/www/html/index.html
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo HTML (en servidor 1):
+---------------------------------------------------------------------------------------------------------------
+<h1>Servidor 1</h1>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo HTML (en servidor 2):
+---------------------------------------------------------------------------------------------------------------
+<h1>Servidor 2</h1>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación: cada servidor tiene un index.html diferente para identificar cuál está activo al acceder por la VIP.
+
+- Permitimos tráfico por el puerto 80 en el firewall.
+$ sudo firewall-cmd --add-port=80/tcp --permanent
+$ sudo firewall-cmd --reload
+
+
+--- Instalación y configuración de Keepalived ---
+
+- Instalamos Keepalived.
+$ sudo dnf install keepalived -y
+
+- Borramos el archivo de configuración de Keepalived para nuestra propia configuración.
+$ sudo rm /etc/keepalived/keepalived.conf
+
+- Creamos/Editamos el archivo de configuración.
+$ sudo vim /etc/keepalived/keepalived.conf
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo de configuración (EN EL SERVIDOR 1):
+---------------------------------------------------------------------------------------------------------------
+vrrp_instance VI_1 {
+    state MASTER
+    interface ens256
+    virtual_router_id 51
+    priority 99
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1234
+    }
+    virtual_ipaddress {
+        192.168.153.100
+    }
+}
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo de configuración (EN EL SERVIDOR 2):
+---------------------------------------------------------------------------------------------------------------
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens160
+    virtual_router_id 51
+    priority 20
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1234
+    }
+    virtual_ipaddress {
+        192.168.153.100
+    }
+}
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+--> Explicación de parámetros:
+- state: MASTER (servidor principal) o BACKUP (servidor secundario).
+- priority: el nodo con mayor prioridad toma la VIP (99 > 20).
+- virtual_router_id: debe ser el mismo en ambos nodos (identificador del grupo VRRP).
+- virtual_ipaddress: la IP flotante que se moverá entre nodos.
+
+- Habilitamos el servicio de Keepalived.
+$ sudo systemctl enable keepalived --now
+
+
+--- Verificación del cluster de alta disponibilidad ---
+
+- De esta manera ya estaría hecha la configuración.
+
+- Podemos pasar a verificar cómo el servicio web va pasando de un nodo a otro utilizando una misma dirección IP.
+
+- Prueba: acceder desde el navegador a http://192.168.153.100 y ver qué servidor responde; luego apagar el servidor activo y verificar que el otro toma el control automáticamente.
