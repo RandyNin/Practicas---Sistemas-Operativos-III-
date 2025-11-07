@@ -1,0 +1,400 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Crifrando archivos con GPG2 en Rocky Linux):
+
+=========================================================================================================================
+
+--- Instalación y creación del archivo a cifrar ---
+
+- Instalar GPG2.
+$ sudo dnf install gnupg2
+
+- Crear archivo a cifrar.
+$ nano archivo.txt
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo:
+---------------------------------------------------------------------------------------------------------------
+Randy Nin
+2025-0660
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: `gnupg2` (GPG) es una implementación de OpenPGP que permite cifrar, descifrar y firmar archivos y comunicaciones. En esta práctica se utiliza cifrado simétrico (misma contraseña para cifrar y descifrar); es una forma rápida y adecuada para proteger ficheros locales o para intercambios controlados. 
+
+--- Cifrado y descifrado ---
+
+- Cifrar archivo de manera simétrica.
+$ gpg2 -c archivo.txt
+
+- Ver el contenido del archivo cifrado (binario, no legible).
+$ cat archivo.txt.gpg
+
+- Descifrar el archivo (salida por stdout).
+$ gpg2 -d archivo.txt.gpg
+--> Nota: Para guardar la salida descifrada en un archivo redirigir el output a un archivo, p. ej.:
+$ gpg2 -d archivo.txt.gpg > decrypted.txt
+
+- Ver el contenido del archivo sin cifrar (en caso de crearlo).
+$ cat decrypted.txt
+
+--> Explicación: el flag `-c` (o `--symmetric`) solicita una contraseña y produce un fichero `.gpg` cifrado. `gpg2 -d` descifra y escribe el contenido en stdout; redirigirlo a un archivo evita que la salida se muestre en el terminal con el riesgo de quedar en el historial.
+
+--> Buenas prácticas adicionales:
+- Usar contraseñas fuertes y almacenarlas en gestores de contraseñas.
+- Comprobar la integridad del archivo cifrado si se transfiere (hash/checksum).
+- Considerar cifrado asimétrico (`gpg --encrypt -r <recipient>`) cuando haya que compartir con otros usuarios sin compartir contraseña.
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Manejo de reglas de firewall-cmd en Rocky Linux):
+
+=========================================================================================================================
+
+--- Preparación e instalación de servicios web/FTP ---
+
+- Instalar servidores HTTP (Apache) y FTP (vsftpd) para la demostración.
+$ sudo dnf install httpd vsftpd -y
+
+- Habilitar los servicios para que arranquen y queden activos.
+$ sudo systemctl enable httpd vsftpd --now
+
+- Especificar el contenido de la página web.
+$ sudo nano /var/www/html/index.html
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo:
+---------------------------------------------------------------------------------------------------------------
+<h1>PROBANDO FIREWALL</h1>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: antes de abrir puertos en el firewall, es recomendable tener los servicios instalados y en ejecución para confirmar que responden correctamente. Verifique el estado de los servicios con `systemctl status httpd` y `systemctl status vsftpd`. Mantener permisos y propietarios correctos en `/var/www/html` para evitar problemas de acceso.
+
+--- Ejemplos con iptables (desactivar firewalld para la demostración) ---
+
+- Deshabilitar temporalmente firewalld para mostrar uso de iptables sin conflicto.
+$ sudo systemctl stop firewalld
+
+- Bloquear puerto 80 (HTTP) usando iptables.
+$ sudo iptables -A INPUT -p tcp --dport 80 -j DROP
+
+--> Nota: al bloquear el puerto 80 desde otro dispositivo no se podrá acceder al servidor web.
+
+- Eliminar regla de bloqueo de puerto 80.
+$ sudo iptables -D INPUT -p tcp --dport 80 -j DROP
+
+--> Nota: al eliminar la regla el tráfico HTTP volverá a permitirse.
+
+- Bloquear puerto 21 (FTP).
+$ sudo iptables -A INPUT -p tcp --dport 21 -j DROP
+
+--> Nota: el acceso al servidor FTP será denegado mientras exista la regla.
+
+- Eliminar regla de bloqueo de puerto 21.
+$ sudo iptables -D INPUT -p tcp --dport 21 -j DROP
+
+--> Nota: tras eliminar la regla el servicio FTP volverá a ser accesible.
+
+- Bloquear puerto 22 (SSH).
+$ sudo iptables -A INPUT -p tcp --dport 22 -j DROP
+
+--> Nota: esto impedirá conexiones SSH entrantes.
+
+- Eliminar regla de bloqueo de puerto 22.
+$ sudo iptables -D INPUT -p tcp --dport 22 -j DROP
+
+--> Nota: tras eliminar la regla, el acceso SSH quedará habilitado.
+
+--> Explicación: `iptables` modifica directamente las tablas del kernel y las reglas aplicadas con `-A` (append) son en caliente pero no persistentes tras reinicio. Para persistir reglas en sistemas sin firewalld, es necesario guardar las reglas en un archivo y restaurarlas en el arranque (p. ej. con `iptables-save` / `iptables-restore`). Al manipular iptables remótamente, tener un mecanismo de recuperación (consola o acceso físico) es crítico para no dejarse fuera del servidor.
+
+--- Uso de firewall-cmd (firewalld) ---
+
+- Permitir tráfico por el puerto 80 (HTTP) de forma permanente.
+$ sudo firewall-cmd --add-port=80/tcp --permanent
+
+- Recargar el firewall para aplicar los cambios.
+$ sudo firewall-cmd --reload
+
+--> Nota: tras esto se podrá acceder al servidor web.
+
+- Eliminar la regla que permitía el puerto 80.
+$ sudo firewall-cmd --remove-port=80/tcp --permanent
+$ sudo firewall-cmd --reload
+
+- Permitir tráfico por el puerto 21 (FTP) de forma permanente.
+$ sudo firewall-cmd --add-port=21/tcp --permanent
+$ sudo firewall-cmd --reload
+
+--> Nota: tras esto se podrá acceder al servidor FTP.
+
+- Eliminar la regla del puerto 21.
+$ sudo firewall-cmd --remove-port=21/tcp --permanent
+$ sudo firewall-cmd --reload
+
+- Permitir tráfico por el puerto 22 (SSH) de forma permanente.
+$ sudo firewall-cmd --add-port=22/tcp --permanent
+$ sudo firewall-cmd --reload
+
+--> Nota: alternativamente se puede permitir el servicio SSH con '--add-service=ssh' para cubrir puertos dependientes.
+
+- Eliminar la regla del puerto 22 (o eliminar el servicio SSH).
+$ sudo firewall-cmd --remove-port=22/tcp --permanent  (o --remove-service=ssh)
+$ sudo firewall-cmd --reload
+
+--> Explicación: `firewalld` administra zonas y servicios de alto nivel; `--permanent` escribe la regla en la configuración persistente y `--reload` aplica los cambios. Existe también la opción de añadir reglas temporales (sin `--permanent`) que se pierden al reiniciar. Preferir `--add-service=ssh` sobre `--add-port=22/tcp` cuando sea posible, ya que el servicio puede incluir rangos de puertos o dependencias. 
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Instalacion y configuración de IDS Snort en Rocky Linux) [!] Hecho en Rocky Linux 8:
+
+=========================================================================================================================
+
+--- Habilitación de repositorios y preparación del sistema ---
+
+- Habilitar/instalar repositorios necesarios para dependencias.
+$ sudo dnf config-manager --set-enabled powertools
+$ sudo dnf install epel-release
+
+--> Explicación: powertools y EPEL contienen paquetes y dependencias adicionales no incluidos en los repositorios base de Rocky Linux; son necesarios para compilar e instalar software que requiere bibliotecas y herramientas de desarrollo.
+
+- Editar la configuración de búsqueda de bibliotecas del sistema.
+$ sudo nano /etc/ld.so.conf.d/local.conf
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo:
+---------------------------------------------------------------------------------------------------------------
+/usr/local/lib 
+/usr/local/lib64
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: añadir /usr/local/lib y /usr/local/lib64 al archivo de configuración de ld.so permite que el cargador dinámico del sistema (ld.so) encuentre bibliotecas instaladas manualmente en /usr/local. Tras editar este archivo, se debe ejecutar `sudo ldconfig` para actualizar la caché de bibliotecas.
+
+--- Instalación de herramientas de compilación y dependencias ---
+
+- Instalar paquetes necesarios para compilar e instalar Snort y sus dependencias.
+$ sudo dnf install -y gcc flex bison zlib zlib-devel libpcap libpcap-devel \
+pcre pcre-devel tcpdump openssl openssl-devel \
+hwloc hwloc-devel cmake cmake3 git wget make autoconf automake \
+libtool libnet libnet-devel libyaml libyaml-devel file-devel \
+doxygen rpm-build libmnl libmnl-devel nano which
+
+$ sudo dnf groupinstall -y "Development Tools" -y && sudo dnf install check-devel -y
+
+--> Explicación: se instalan compiladores (gcc), herramientas de construcción (make, cmake), bibliotecas para captura de paquetes (libpcap), expresiones regulares (pcre), y otras dependencias necesarias por Snort y sus módulos. El grupo "Development Tools" contiene utilidades comunes para compilación.
+
+--- Compilación e instalación de libdnet (libnet) ---
+
+- Descargar y compilar libdnet (dependencia para libnet/libdnet).
+$ cd /tmp
+$ wget https://github.com/ofalk/libdnet/archive/refs/tags/libdnet-1.16.tar.gz
+$ tar -xvzf libdnet-1.16.tar.gz
+$ cd libdnet-libdnet-1.16
+$ ./configure --prefix=/usr
+$ make
+$ sudo make install
+
+--> Explicación: libdnet proporciona utilidades para manejo de redes a bajo nivel; la instalación en /usr hace que las bibliotecas y cabeceras queden en rutas accesibles para el sistema y para la compilación de otros proyectos.
+
+--- Compilación e instalación de libdaq ---
+
+- Clonar y compilar libdaq, necesaria para soporte de captura en Snort.
+$ git clone https://github.com/snort3/libdaq.git
+$ cd libdaq/
+$ ./bootstrap
+$ ./configure && make && sudo make install
+$ sudo ldconfig
+$ cd ../
+
+--> Explicación: libdaq permite a Snort interactuar con distintos backends de captura; `./bootstrap` prepara el entorno (autoconf/automake), y `ldconfig` actualiza la caché de bibliotecas para que las nuevas librerías sean detectadas por el sistema.
+
+- Actualizar la caché de librerías del sistema (recomendado después de instalar bibliotecas manualmente).
+$ sudo ldconfig
+
+--- Verificar e instalar dependencias adicionales ---
+
+- Instalar bibliotecas y paquetes adicionales que Snort puede requerir.
+$ sudo dnf install flex bison gcc gcc-c++ make cmake autoconf libtool git nano unzip wget libpcap-devel pcre-devel libdnet-devel hwloc-devel openssl-devel zlib-devel luajit-devel pkgconfig pkgconf libunwind-devel libnfnetlink-devel libnetfilter_queue-devel libmnl-devel xz-devel gperftools libuuid-devel hyperscan hyperscan-devel  -y
+
+--> Explicación: esta línea cubre dependencias opcionales y avanzadas (por ejemplo, Hyperscan para aceleración de patrones) que mejoran capacidad de Snort; instalar estos paquetes reduce errores durante la compilación.
+
+--- Descarga y compilación de Snort 3 ---
+
+- Clonar el repositorio de Snort 3.
+$ git clone https://github.com/snort3/snort3.git
+$ cd snort3
+
+- Exportar variables de entorno necesarias para la compilación.
+$ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+$ export PKG_CONFIG_PATH=/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH
+$ export CFLAGS="-O3"
+$ export CXXFLAGS="-O3 -fno-rtti"
+
+--> Explicación: PKG_CONFIG_PATH ayuda a que pkg-config encuentre los archivos .pc de bibliotecas instaladas en /usr/local; CFLAGS/CXXFLAGS configuran optimizaciones para la compilación.
+
+- Preparar el entorno de compilación con el script de configuración de cmake.
+$ ./configure_cmake.sh --prefix=/usr/local/snort --enable-tcmalloc
+
+- Compilar e instalar Snort.
+$ cd build/
+$ make -j$(nproc)
+$ sudo make -j$(nproc) install
+$ sudo ldconfig
+
+--> Explicación: `-j$(nproc)` acelera la compilación usando todos los núcleos disponibles; `--enable-tcmalloc` activa tcmalloc (mejor gestión de memoria) si está disponible.
+
+- Crear un enlace simbólico para acceder al binario desde /usr/bin.
+$ sudo ln -s /usr/local/snort/bin/snort /usr/bin/snort
+
+- Verificar que Snort se instaló correctamente (muestra la versión).
+$ snort -V
+
+--- Configuración de la red que Snort va a monitorear ---
+
+- Editar la configuración principal de Snort (snort.lua) para establecer HOME_NET.
+$ sudo nano /usr/local/snort/etc/snort/snort.lua
+
+---------------------------------------------------------------------------------------------------------------
+Editamos en el archivo:
+---------------------------------------------------------------------------------------------------------------
+HOME_NET = '10.0.0.127/24' [TU IP Y MÁSCARA]
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: HOME_NET debe definirse con la subred que se desea proteger/monitorear. Ese valor se utiliza en reglas para distinguir tráfico interno de externo. Ajustar la IP y máscara acorde a la red real (por ejemplo 192.168.153.0/24). Después de modificar, validar la configuración con `snort -T`.
+
+--- Verificación de la configuración y prueba de Snort ---
+
+- Verificar que la configuración de Snort es correcta (modo prueba).
+$ snort -T -c /usr/local/snort/etc/snort/snort.lua
+
+--> Explicación: la opción `-T` prueba la configuración sin arrancar el monitoreo; sirve para detectar errores de sintaxis o rutas incorrectas.
+
+- Poner el adaptador de red en modo promiscuo para capturar todo el tráfico que pasa por la interfaz.
+$ sudo ip link set dev ens160 promisc on
+
+--> Explicación: en modo promiscuo la interfaz recibe todos los paquetes que pasan por la red (no solo los dirigidos a la MAC local), lo cual es necesario para que Snort detecte tráfico relevante en una red compartida o en modo puente.
+
+--- Configuración de reglas locales de Snort ---
+
+- Editar el archivo de reglas locales para detección de servicios comunes.
+$ sudo nano /usr/local/snort/etc/snort/local.rules
+
+---------------------------------------------------------------------------------------------------------------
+Contenido del archivo:
+---------------------------------------------------------------------------------------------------------------
+# ICMP entrante hacia mi máquina
+alert icmp any any -> $HOME_NET any ( msg:"ICMP Traffic Detected"; sid:10000001; metadata:policy security-ips alert; )
+
+# HTTP:80 entrante hacia mi máquina
+alert tcp any any -> $HOME_NET 80 ( msg:"HTTP Traffic Detected"; flow:to_server; sid:1000002; rev:1; )
+
+# SSH:22 entrante hacia mi máquina
+alert tcp any any -> $HOME_NET 22 ( msg:"SSH Traffic Detected"; flow:to_server; sid:1000003; rev:1; )
+
+# HTTP:8080 entrante hacia mi máquina
+alert tcp any any -> $HOME_NET 8080 ( msg:"HTTP Alternative Port Traffic"; flow:to_server; sid:1000004; rev:1; )
+
+# FTP:21 entrante hacia mi máquina
+alert tcp any any -> $HOME_NET 21 ( msg:"FTP Traffic Detected"; flow:to_server; sid:1000005; rev:1; )
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación de la sintaxis básica de reglas:
+- `alert`: acción a ejecutar cuando la regla casa (alertar).
+- Protocolo: `icmp`, `tcp`, etc.
+- `any any -> $HOME_NET 80`: origen `any` (cualquier IP/puerto) hacia `HOME_NET` en puerto 80.
+- Opciones entre paréntesis: `msg` (mensaje de la alerta), `sid` (identificador único de la regla), `rev` (revisión), `flow` (dirección del flujo).
+- Los `sid` deben ser únicos y en rangos apropiados para reglas locales (ej. >1000000).
+
+--> Nota importante: para la práctica es necesario tener servidor HTTP y FTP funcionando en la máquina (se omite su instalación aquí por estar documentada en prácticas previas).
+
+--- Ejecutar Snort y observar alertas ---
+
+- Ejecutar Snort en primer plano mostrando alertas rápidas.
+$ sudo snort -c /usr/local/snort/etc/snort/snort.lua -R /usr/local/snort/etc/snort/local.rules -i ens160 -A alert_fast -s 65535 -k none
+
+--> Explicación de los parámetros principales:
+- `-c <ruta>`: archivo de configuración (snort.lua).
+- `-R <ruta>`: cargar reglas desde el archivo indicado (local.rules).
+- `-i ens160`: interfaz a monitorear.
+- `-A alert_fast`: formato de salida de alertas (rápido y conciso).
+- `-s 65535`: tamaño máximo de captura de paquete (snaplen).
+- `-k none`: desactivar verificación de checksum (útil en entornos virtualizados donde checksums pueden ser inválidos).
+
+--> Recomendaciones y comprobaciones finales:
+- Ejecutar Snort en modo prueba (`-T`) tras cualquier cambio en snort.lua o las reglas.
+- Comprobar permisos y rutas: todos los archivos de configuración deben ser legibles por el usuario que ejecuta Snort.  
+
+
+=========================================================================================================================
+
+# Comandos usados practica 4 (Configuración de 2FA con Google Authenticator para acceso SSH en Rocky Linux) [!] Hecho en Rocky Linux 8:
+
+=========================================================================================================================
+
+--- Preparar el sistema e instalar paquetes necesarios ---
+
+- Habilitar el repositorio EPEL.
+$ sudo dnf install epel-release -y
+
+- Instalar Google Authenticator y qrencode (para generar códigos QR).
+$ sudo dnf install google-authenticator qrencode
+
+
+--- Configurar Google Authenticator para el usuario ---
+
+- Ejecutar la configuración interactiva desde la cuenta del usuario que requerirá el código.
+$ google-authenticator
+
+--> Explicación: durante la interacción se generan:
+  - Una clave secreta (base32) usada para calcular códigos TOTP.
+  - Un QR (se puede escanear con la app móvil).
+  - Códigos de emergencia (scratch codes) que deben guardarse en un lugar seguro.
+  - Opciones para forzar el tiempo de vida del token, permitir o no el uso de múltiples tokens, y bloquear reuso de códigos. 
+
+--- Configuración de PAM para exigir 2FA en SSH ---
+
+- Editar el archivo PAM de SSH.
+$ sudo nano /etc/pam.d/sshd
+
+---------------------------------------------------------------------------------------------------------------
+Agregamos en el archivo (al inicio del archivo):
+---------------------------------------------------------------------------------------------------------------
+auth required pam_google_authenticator.so
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: al incluir `pam_google_authenticator.so` en el flujo de PAM para `sshd`, se solicita el token TOTP (generado por la app) como parte del proceso de autenticación. La ubicación al inicio del archivo influye en el orden de los módulos PAM; colocarla mal puede provocar que se solicite 2FA antes o después de la contraseña según la configuración; probar la configuración es crítico para no bloquear usuarios.
+
+--- Configurar el demonio SSH para permitir 2FA y PAM ---
+
+- Editar el archivo de configuración de sshd.
+$ sudo nano /etc/ssh/sshd_config
+
+---------------------------------------------------------------------------------------------------------------
+Editamos en el archivo:
+---------------------------------------------------------------------------------------------------------------
+PasswordAuthentication yes
+ChallengeResponseAuthentication yes
+UsePAM yes
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: `UsePAM yes` habilita el uso de los módulos PAM desde sshd. `ChallengeResponseAuthentication yes` permite desafíos tipo teclado-interactivo (necesario para muchos módulos TOTP). `PasswordAuthentication yes` deja la autenticación por contraseña habilitada; en entornos más seguros se puede combinar clave pública con 2FA usando `AuthenticationMethods` (p. ej. `publickey,keyboard-interactive`), pero cualquier cambio avanzado debe probarse antes de cerrar sesiones SSH.  
+
+
+--- Ajustes temporales de SELinux y reinicio del servicio SSH ---
+
+- Desactivar SELinux temporalmente (solo para pruebas).
+$ sudo setenforce 0
+
+--> Nota: desactivar SELinux reduce las restricciones de seguridad; en entornos de producción no se recomienda. Alternativamente, configurar las políticas SELinux adecuadas para permitir pam_google_authenticator sin deshabilitar SELinux.
+
+- Reiniciar el servicio SSH para aplicar los cambios.
+$ sudo systemctl restart sshd
+
+--> Resultado esperado: al intentar conectarse por SSH se solicitará primero la contraseña (si aplica) y luego el código de Google Authenticator.
