@@ -1,0 +1,420 @@
+=========================================================================================================================
+
+# Comandos usados practica 1 (Compartir archivos entre linux utilizando NFS en Rocky Linux):
+
+=========================================================================================================================
+
+*** En el servidor ***
+
+-- Instalar NFS --
+
+- Instala las utilidades del servicio NFS necesarias para exportar carpetas.
+$ sudo dnf install nfs-utils -y
+
+-- Crear carpeta compartida --
+- Crea la carpeta que será exportada por NFS (usamos -p para crear padres si no existen).
+$ sudo mkdir -p /srv/nfs/nombre_de_la_carpeta
+
+
+-- Configurar permisos de la carpeta --
+
+- Cambia propietario a nobody:nobody (configuración simple para compartir).
+$ sudo chown -R nobody:nobody /srv/nfs
+
+- Da permisos amplios para facilitar pruebas (777 permite lectura/escritura/ejecución a todos).
+$ sudo chmod 777 /srv/nfs/nombre_de_la_carpeta
+
+
+-- Configurar exportacion NFS --
+
+- Edita el archivo de exports para declarar qué rutas se comparten y con qué opciones.
+$ sudo nano /etc/exports
+
+---------------------------------------------------------------------------------------------------------------
+Titulo: /etc/exports
+---------------------------------------------------------------------------------------------------------------
+/srv/nfs/nombre_de_la_carpeta 10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: se agregó una línea que exporta /srv/nfs/nombre_de_la_carpeta a la red 10.0.0.0/24 con:
+  + rw: permite lectura/escritura desde clientes.
+  + sync: escritura síncrona (más segura).
+  + no_subtree_check: evita comprobaciones que pueden impedir acceso tras renombrar.
+  + no_root_squash: mantiene UID 0 del cliente como root en el servidor (útil para pruebas; en producción usar root_squash por seguridad).
+
+-- Aplicamos los cambios --
+$ sudo exportfs -rav
+
+-- Habilitamos el servicio NFS --
+$ sudo systemctl enable nfs-server --now
+
+-- Permitimos el servicio NFS en el firewall --
+$ sudo firewall-cmd --add-service=nfs --permanent
+$ sudo firewall-cmd --reload
+
+
+*** En el cliente ***
+
+
+-- Instalar NFS --
+
+- Instala las utilidades NFS para poder montar exports remotos.
+$ sudo dnf install nfs-utils -y
+
+
+-- Crear la carpeta de punto de montaje --
+
+- Crea el directorio local donde se montará el recurso NFS.
+$ sudo mkdir -p /mnt/nombre_del_montaje
+
+
+-- Crear punto de montaje manualmente (temporal) --
+
+- Monta manualmente la carpeta remota para pruebas (temporal hasta fstab).
+$ sudo mount -t nfs 10.0.0.10:/srv/nfs/nombre_de_la_carpeta /mnt/nombre_del_montaje
+
+
+-- Verificar si se realizo el punto de montaje --
+
+$ df -h
+
+--> Explicación: Comprobar que /mnt/nombre_del_montaje aparece y muestra el tamaño/disponible.
+
+
+*** Probar creando/modificando archivos tanto en el servidor como cliente ***
+
+- Crea un archivo desde el cliente:
+$ sudo touch /mnt/nombre_del_montaje/test_desde_cliente.txt
+
+- Crea un archivo desde el servidor:
+$ sudo touch /srv/nfs/nombre_de_la_carpeta/test_desde_servidor.txt
+
+--> Nota: verificar replicación inmediata: archivos creados en uno deben verse en el otro.
+
+*** En el cliente (montaje permanente) ***
+
+
+-- Añadir el punto de montaje de manera permanente --
+
+- Edita /etc/fstab para montar el recurso NFS al arrancar.
+$ sudo nano /etc/fstab
+
+---------------------------------------------------------------------------------------------------------------
+Titulo: /etc/fstab
+---------------------------------------------------------------------------------------------------------------
+10.0.0.10:/srv/nfs/nombre_de_la_carpeta  /mnt/nombre_del_montaje  nfs  defaults  0 0
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: línea añadida a fstab para montaje automático:
+  + formato: servidor:/ruta_remota  punto_de_montaje  tipo  opciones  dump  pass
+  + defaults usa opciones por defecto (rw,relatime,etc.). Al reiniciar, el sistema montará automáticamente el recurso NFS.
+
+-- Reiniciar para confirmar que se realizo correctamente --
+
+- Reinicia la máquina cliente para validar que el montaje se realiza en el arranque.
+$ sudo reboot
+
+=========================================================================================================================
+
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Creacion de File Server compatible con Windows utilizando SAMBA  en Rocky Linux):
+
+=========================================================================================================================
+
+
+*** En el servidor principal ***
+
+-- Instalar Samba --
+
+- Instala los paquetes principales que permiten compartir carpetas mediante el protocolo SMB.
+$ sudo dnf install samba samba-common samba-client -y
+
+-- Crea el directorio que será compartido a máquinas Windows --
+$ sudo mkdir -p /srv/samba/nombre_de_la_carpeta
+
+- Da permisos completos para facilitar acceso durante pruebas.
+$ sudo chmod 777 /srv/samba/nombre_de_la_carpeta
+
+-- (Opcional) Crear usuario para Samba --
+$ sudo useradd -M -s /sbin/nologin nombre_usuario
+--> Explicación: Crea un usuario del sistema sin shell ni home, usado solo para autenticación en Samba.
+
+-- Agregar usuario al sistema de Samba --
+$ sudo smbpasswd -a nombre_usuario
+--> Explicación: Crea la cuenta de Samba asociada al usuario del sistema; esta es la contraseña que pedirá Windows.
+
+-- Configurar archivo de Samba --
+$ sudo vim /etc/samba/smb.conf
+
+---------------------------------------------------------------------------------------------------------------
+Titulo: /etc/samba/smb.conf
+---------------------------------------------------------------------------------------------------------------
+[nombre_recurso]
+   path = /srv/samba/
+   writable = yes
+   browseable = yes
+   valid users = nombre_usuario
+   create mask = 0777
+   directory mask = 0777
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: se añadió un recurso compartido con:
+  + path: ruta de la carpeta a compartir.
+  + writable=yes: permite modificar/crear archivos desde Windows.
+  + browseable=yes: aparece en el explorador de Windows.
+  + valid users: solo este usuario puede acceder.
+  + create/directory mask: permisos por defecto para archivos y carpetas creados.
+
+-- Deshabilitar SElinux temporalmente --
+$ sudo setenforce 0
+--> Explicación: Evita bloqueos de acceso si las políticas de SELinux interfieren con Samba.
+
+-- Activa e inicia los servicios principales de Samba (smb para compartir, nmb para anuncios NetBIOS)--
+$ sudo systemctl enable smb nmb --now
+
+- Reinicia los servicios para aplicar cambios en smb.conf.
+$ sudo systemctl restart smb nmb
+
+-- Permitir servicio de Samba en el firewall --
+$ sudo firewall-cmd --add-service=samba --permanent
+$ sudo firewall-cmd --reload
+
+
+
+*** En el cliente Windows ***
+
+-- Acceder al recurso compartido --
+- Desde el explorador de archivos o Ejecutar (Windows+R), ingresar:
+ \\ip_del_servidor
+
+- Windows pedirá:
+  + Usuario de Samba (nombre_usuario)
+  + Contraseña configurada con smbpasswd
+
+- Tras autenticarse, la carpeta compartida del servidor Rocky aparecerá como recurso de red.
+
+- Mapear un disco de red con el recurso:
+  + En el explorador de archivos dar click derecho a 'This PC'
+  + Dar click donde dice 'Map Network Drive' y colocar la ruta del recurso
+
+
+=========================================================================================================================
+
+
+=========================================================================================================================
+
+# Comandos usados practica (Controlador de Dominio Samba AD/DC en Rocky Linux + unir Windows al dominio):
+
+=========================================================================================================================
+
+-- Cambia el nombre del host para identificar la máquina como controlador de dominio --
+$ sudo hostnamectl set-hostname dc1.so3.inet
+
+
+-- Añade la IP y el hostname en /etc/hosts para resolución local inmediata --
+$ echo "192.168.153.100 dc1.so3.inet dc1" | sudo tee -a /etc/hosts
+
+
+-- Asigna una IP estática, gateway y DNS a la conexión ens160 (modifica la IP/MASK según tu red) --
+$ sudo nmcli connection modify ens160 ipv4.addresses "192.168.153.100/24" ipv4.gateway "192.168.153.2" +ipv4.dns "192.168.153.100" +ipv4.dns "8.8.8.8" ipv4.method manual
+
+
+--- Reiniciar la interfaz de red ---
+$ sudo ifconfig ens160 down
+$ sudo ifconfig ens160 up
+$ sudo systemctl restart NetworkManager
+
+
+--- Activar repositorio CRB (equivalente Powertools) ---
+$ sudo dnf config-manager --set-enabled crb
+
+--> Explicacion: - Habilita paquetes adicionales necesarios para compilación / dependencias.
+
+
+-- Instala EPEL que añade paquetes extra útiles en Rocky --
+$ sudo dnf install epel-release -y
+
+
+-- Actualiza todos los paquetes instalados antes de compilar/instalar --
+$ sudo dnf update -y
+
+
+--- Instalar herramientas y dependencias para compilar Samba ---
+
+- Instala grupos y paquetes necesarios para compilar Samba desde código fuente.
+$ sudo dnf -y groupinstall "Development Tools"
+
+$ sudo dnf -y install wget tar gcc make python3-devel \
+  docbook-style-xsl python3-markdown bison dbus-devel flex gdb \
+  gnutls-devel jansson-devel keyutils-libs-devel krb5-workstation \
+  libacl-devel libaio-devel libarchive-devel libattr-devel libblkid-devel \
+  libtasn1 libtasn1-tools libxml2-devel libxslt lmdb-devel \
+  openldap-devel pam-devel perl perl-ExtUtils-MakeMaker perl-Parse-Yapp \
+  popt-devel python3-cryptography python3-dns python3-gpg readline-devel \
+  rpcgen systemd-devel zlib-devel perl-JSON gpgme-devel screen pkgconfig \
+  libnsl2-devel
+
+
+- Crea /samba y asigna permisos al usuario que compilará (randyn).
+$ sudo mkdir /samba
+$ cd /samba
+$ sudo chown randyn:randyn /samba
+
+
+--- Descargar y descomprimir Samba ---
+$ wget https://download.samba.org/pub/samba/stable/samba-4.21.3.tar.gz
+$ tar -zxvf samba-4.21.3.tar.gz
+$ cd samba-4.21.3
+
+--- Configurar, compilar e instalar Samba ---
+$ ./configure --prefix=/usr/local/samba \
+  --enable-fhs \
+  --with-systemd \
+  --with-shared-modules=idmap_ad,idmap_hash,idmap_rid,winbindd \
+  CFLAGS='-O2'
+
+--> Explicación: Configura la compilación con prefijo /usr/local/samba y opciones para integración systemd.
+
+- Compila usando todos los núcleos disponibles.
+$ make -j$(nproc)
+
+- Instala los binarios compilados en el sistema.
+$ sudo make install
+
+
+--- Exportar PATH para que los binarios de Samba estén disponibles ---
+
+- Añade /usr/local/samba/bin y /usr/local/samba/sbin al PATH del sistema.
+$ echo 'export PATH=/usr/local/samba/bin:/usr/local/samba/sbin:$PATH' | sudo tee /etc/profile.d/samba.sh
+
+- Recarga las variables de entorno para la sesión actual.
+$ source /etc/profile.d/samba.sh
+
+
+--- Borrar configuraciones antiguas (si existieran) ---
+$ sudo rm -r /usr/local/share/etc/samba/smb.conf
+
+
+--- Provisiona un nuevo dominio AD/DC con samba-tool (ajusta adminpass si lo deseas) ---
+$ DOMAIN="so3.inet"
+$ sudo /usr/local/samba/bin/samba-tool domain provision \
+  --use-rfc2307 \
+  --realm=${DOMAIN} \
+  --domain=${DOMAIN%%.*} \
+  --server-role=dc \
+  --dns-backend=SAMBA_INTERNAL \
+  --adminpass='Randy@20250660'
+
+--> Explicación: crea la base de AD (usuarios, DNS, Kerberos, etc.) y genera smb.conf automáticamente.
+
+--- Configurar Kerberos (krb5.conf) ---
+
+- Buscar krb5.conf proporcionado por Samba:
+$ sudo find /usr/local/samba -name "krb5.conf"
+
+- Si existe, copiar al sistema:
+$ sudo cp /usr/local/samba/share/samba/setup/krb5.conf /etc/krb5.conf
+
+--> Nota: Si no existe, crear /etc/krb5.conf manualmente con el siguiente contenido:
+
+---------------------------------------------------------------------------------------------------------------
+Titulo: /etc/krb5.conf
+---------------------------------------------------------------------------------------------------------------
+[libdefaults]
+    default_realm = SO3.INET
+    dns_lookup_realm = false
+    dns_lookup_kdc = false
+
+[realms]
+    SO3.INET = {
+        kdc = dc1.so3.inet
+        admin_server = dc1.so3.inet
+    }
+
+[domain_realm]
+    .so3.inet = SO3.INET
+    so3.inet = SO3.INET
+    dc1.so3.inet = SO3.INET
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+--> Explicación: krb5.conf define el reino Kerberos y dónde están los KDC/servers; necesario para autenticación en AD.
+
+
+--- Desactiva enforcement de SELinux (temporal; para producción se recomienda configurar políticas correctamente) ---
+$ sudo setenforce 0
+
+
+--- Crea el archivo de unidad systemd para gestionar el proceso Samba como servicio ---
+$ sudo tee /etc/systemd/system/samba.service > /dev/null <<'EOF'
+[Unit]
+Description=Samba Active Directory Domain Controller
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/samba/sbin/samba -i
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+LimitNOFILE=16384
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+--> Explicación: unidad systemd para arrancar Samba AD como demonio gestionado por systemd.
+
+- Recarga unidades systemd y habilita/inicia el servicio Samba.
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable --now samba
+
+
+--- Configurar Firewall para servicios AD/DC ---
+$ sudo firewall-cmd --permanent --add-service=ldap
+$ sudo firewall-cmd --permanent --add-service=ldaps
+$ sudo firewall-cmd --permanent --add-service=kerberos
+$ sudo firewall-cmd --permanent --add-service=dns
+
+$ sudo firewall-cmd --permanent --add-port=53,88,135,139,389,445,464,636,3268,3269/tcp
+$ sudo firewall-cmd --permanent --add-port=53,88,123,138,389,464/udp
+$ sudo firewall-cmd --reload
+
+--> Explicación: abre puertos necesarios para LDAP, Kerberos, SMB, DNS y servicios de dominio.
+
+
+--- Pruebas locales y verificación ---
+
+- Comprobar el nivel del dominio creado.
+$ sudo /usr/local/samba/bin/samba-tool domain level show
+
+- Listar usuarios del AD para verificar provisión.
+$ /usr/local/samba/bin/samba-tool user list
+
+- Probar conexiones SMB locales con smbclient.
+$ smbclient -L localhost -U Administrator
+
+- Ver registros DNS SRV (ejemplo) contra el servidor local.
+$ host -t SRV _ldap._tcp.so3.inet 127.0.0.1
+
+
+--- Crear usuario en AD (ejemplo 'lanegracubana') ---
+- Crea el usuario en el Active Directory.
+$ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
+
+--- Instrucciones en la máquina Windows cliente (resumen para exposición) ---
+- Configurar la IP del servidor Samba como servidor DNS primario en la configuración de red del cliente Windows.
+- En Propiedades del Sistema -> Cambiar configuración de dominio -> Poner el dominio 'SO3.INET' y unir la máquina.
+- Reiniciar Windows para aplicar el join.
+- Iniciar sesión con usuarios del dominio (por ejemplo: SO3\lanegracubana).
+
+=========================================================================================================================
+
+FIN DEL DOCUMENTO.
+
