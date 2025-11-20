@@ -208,7 +208,7 @@ $ sudo firewall-cmd --reload
 
 =========================================================================================================================
 
-# Comandos usados practica (Controlador de Dominio Samba AD/DC en Rocky Linux + unir Windows al dominio):
+# Comandos usados practica 3 (Controlador de Dominio Samba AD/DC en Rocky Linux + unir Windows al dominio):
 
 =========================================================================================================================
 
@@ -417,4 +417,5 @@ $ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
 =========================================================================================================================
 
 FIN DEL DOCUMENTO.
+
 
