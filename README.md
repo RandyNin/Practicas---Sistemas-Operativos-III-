@@ -38,13 +38,13 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 ### [MODULO VI: Seguridad en Linux](https://www.youtube.com/playlist?list=PLxMefEiS_P6pZPyXfiMXXo-h3tgEkEhVO)
 - Practica 1: Crifrando archivos con GPG2 en Rocky Linux.
 - Practica 2: Manejo de reglas de firewall-cmd en Rocky Linux.
-- Practica 3: Instalación y configuración de IDS snort en Rocky Linux.
-- Practica 4: Configuración de 2FA con Google Authenticator para acceso SSH en Rocky Linux.
+- Practica 3: Instalación y configuración de IDS snort en Rocky Linux. \[⚠️\] Realizada en la version Rocky Linux 8.
+- Practica 4: Configuración de 2FA con Google Authenticator para acceso SSH en Rocky Linux. \[⚠️\] Realizada en la version Rocky Linux 8.
 
-### [MODULO VII: Seguridad en Linux](https://www.youtube.com/playlist?list=PLxMefEiS_P6phXbEusH6nOUKr3ztV8sNK)
+### [MODULO VII: Controlador de Dominios y Compartir Archivos](https://www.youtube.com/playlist?list=PLxMefEiS_P6phXbEusH6nOUKr3ztV8sNK)
 - Practica 1: Compartir archivos entre linux utilizando NFS en Rocky Linux.
 - Practica 2: Creacion de File Server compatible con Windows utilizando SAMBA en Rocky Linux.
 - Practica 3: Creación de controlador de dominio con cliente Windows en Rocky Linux.
 
 ---
-❗**Nota**: Todas estas practricas fueron realizadas en Rocky Linux 
+❗**Nota**: Estas practricas fueron realizadas en Rocky Linux 9
