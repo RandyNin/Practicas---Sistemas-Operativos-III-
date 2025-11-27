@@ -46,5 +46,11 @@ Aquí se almacenan los archivos `.txt` con los **comandos utilizados en cada lab
 - Practica 2: Creacion de File Server compatible con Windows utilizando SAMBA en Rocky Linux.
 - Practica 3: Creación de controlador de dominio con cliente Windows en Rocky Linux.
 
+
+### [MODULO VIII: Cloud Computing y Contenerización](https://www.youtube.com/playlist?list=PLxMefEiS_P6pYTlLFGa38B06aSAd8aJ4j)
+- Practica 1: Instalación y configuración de Docker en Rocky Linux.
+- Practica 2: Instalación de Portainer en Rocky Linux.
+- Practica 3: Despliegue de contenedor de WordPress utilizando Docker Compose en Rocky Linux.
+
 ---
 ❗**Nota**: Estas practricas fueron realizadas en Rocky Linux 9
