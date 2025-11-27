@@ -1,1 +1,175 @@
-a
+=========================================================================================================================
+
+# Comandos usados practica 1 (Instalación y configuración de Docker en Rocky Linux):
+
+=========================================================================================================================
+
+-- Instalar Docker --
+
+- Instalar paquetes requeridos
+  $ sudo dnf install -y dnf-plugins-core
+
+- Añadir el repositorio oficial de Docker
+  $ sudo dnf config-manager --add-repo [https://download.docker.com/linux/centos/docker-ce.repo](https://download.docker.com/linux/centos/docker-ce.repo)
+
+- Instalar Docker Engine
+  $ sudo dnf install -y docker-ce docker-compose-plugin
+
+- Habilitar e iniciar el servicio de Docker
+  $ sudo systemctl enable --now docker
+
+- Añadir usuario al grupo docker
+  $ sudo usermod -aG docker $USER
+
+- Aplicar el cambio sin cerrar sesión
+  $ newgrp docker
+
+--> Nota: Después de añadir el usuario al grupo `docker`, `newgrp docker` aplica el cambio en la sesión actual. Alternativamente, cerrar y abrir sesión también aplica el cambio.
+
+-- Crear contenedor nginx --
+
+- Descargar imagen de nginx desde Docker Hub
+  $ docker pull nginx:latest
+
+- Ver las imágenes descargadas
+  $ docker images
+
+- Crear el contenedor a partir de esa imagen (volumen y mapeo de puertos)
+  $ sudo docker run -d --name server-nginx -p 8888:80 -v /home/website:/usr/share/nginx/html/ nginx:latest
+  --> Nota: Asegurarse de crear el directorio `/home/website` o cambiar por uno válido antes de ejecutar el contenedor.
+
+- Validar que el contenedor está corriendo
+  $ docker ps
+
+- Crear página web que servirá el contenedor
+  $ vim /home/website/index.html
+
+---------------------------------------------------------------------------------------------------------------
+## Titulo: /home/website/index.html
+---------------------------------------------------------------------------------------------------------------
+<h1>PROBANDO NGINX</h1>
+<p>SISTEMAS OPERATIVOS 3</p>
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+- Acceder en el navegador por [http://localhost:8888] y comprobar que funciona.
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Instalación de Portainer en Rocky Linux):
+
+=========================================================================================================================
+
+-- Instalar Portainer --
+
+- Descargar imagen de Portainer desde Docker Hub
+  $ docker pull portainer/portainer-ce:2.20.2
+
+- Ver la imagen
+  $ docker images
+
+- Crear volumen a usar en el contenedor de Portainer
+  $ docker volume create portainer_data
+
+- Crear el contenedor de Portainer
+  $ sudo docker run -d --name portainer 
+  -p 8000:8000 
+  -p 9000:9000 
+  -p 9443:9443 
+  --restart=always 
+  -v /var/run/docker.sock:/var/run/docker.sock:Z 
+  -v portainer_data:/data 
+  portainer/portainer-ce:2.20.2
+
+-- Acceder al panel web --
+
+- Ingresar a [http://localhost:9000] en el navegador
+- Configurar usuario y contraseña en el panel web de Portainer
+- Seleccionar el environment local y manejar contenedores y recursos desde la interfaz web
+
+--> Nota: El mapeo de `/var/run/docker.sock` permite que Portainer gestione el daemon Docker local.
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Despliegue de contenedor de WordPress utilizando Docker Compose en Rocky Linux):
+
+=========================================================================================================================
+
+-- Instalar docker-compose (plugin) --
+$ sudo dnf install -y docker-compose-plugin
+--> Nota: Requiere que Docker Engine (docker-ce) esté instalado (ver práctica 1).
+
+-- Desplegar WordPress con Docker Compose --
+
+- Crear archivo docker-compose.yml
+  $ vim docker-compose.yml
+
+---------------------------------------------------------------------------------------------------------------
+## Titulo: docker-compose.yml
+---------------------------------------------------------------------------------------------------------------
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: wordpress_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass_123
+      MYSQL_ROOT_PASSWORD: root_pass_123
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - wpnet
+
+  wordpress:
+    image: wordpress:6.0-apache
+    container_name: wordpress_app
+    depends_on:
+      - db
+    restart: always
+    ports:
+      - "8080:80"        # acceder desde http://host:8080
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_pass_123
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data:/var/www/html
+    networks:
+      - wpnet
+
+volumes:
+  db_data:
+  wp_data:
+
+networks:
+  wpnet:
+    driver: bridge
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+- Arrancar los contenedores de WordPress y MySQL con Docker Compose
+  $ docker compose up -d
+
+-- Acceder a WordPress --
+
+- Acceder a [http://localhost:8080] en el navegador
+- Configurar usuario y contraseña en el panel de instalación de WordPress
+
+- Panel de administración:
+  * [http://localhost:8080/wp-admin]
+
+- Página principal:
+
+  * [http://localhost:8080]
+
+--> Explicación breve:
+Docker Compose orquesta los servicios `db` y `wordpress`, crea volúmenes persistentes para datos y permite exponer WordPress en el puerto 8080 del host. `depends_on` garantiza el orden de arranque, pero no reemplaza comprobaciones de salud si se requiere robustez adicional.
+
+=========================================================================================================================
+
+
