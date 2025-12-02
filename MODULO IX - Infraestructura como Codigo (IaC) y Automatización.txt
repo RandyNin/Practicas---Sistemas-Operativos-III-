@@ -1,1 +1,297 @@
-a
+=========================================================================================================================
+
+# Comandos usados practica 1 (Instalación y configuración de Webmin en Rocky Linux):
+
+=========================================================================================================================
+
+-- Añadir repositorio oficial de Webmin --
+$ sudo tee /etc/yum.repos.d/webmin.repo <<EOF
+[Webmin]
+name=Webmin Distribution Neutral
+baseurl=[https://download.webmin.com/download/yum](https://download.webmin.com/download/yum)
+enabled=1
+gpgcheck=1
+gpgkey=[https://download.webmin.com/jcameron-key.asc](https://download.webmin.com/jcameron-key.asc)
+EOF
+
+-- Instalar Webmin --
+$ sudo dnf install webmin -y
+
+-- Abrir el puerto de Webmin en el firewall y recargar --
+$ sudo firewall-cmd --permanent --add-port=10000/tcp
+$ sudo firewall-cmd --reload
+
+-- Acceso web --
+
+# Abrir en el navegador:
+
+https://<IP_DEL_SERVIDOR>:10000
+
+--> Nota: Webmin usa HTTPS en el puerto 10000 por defecto. Si el navegador muestra advertencias por certificado autofirmado, aceptar temporalmente para acceder (solo en laboratorio).
+
+=========================================================================================================================
+
+# Comandos usados practica 2 (Despliegue de VM en la nube utilizando Terraform en Rocky Linux):
+
+=========================================================================================================================
+
+-- 1. Crear token de API en DigitalOcean (desde panel web) --
+Ruta: API → Generate New Token → Name (terraform-token) → Read and Write → Generate Token
+
+-- 2. Subir la llave pública SSH al panel de DigitalOcean (desde panel web) --
+Ruta: Settings → Security → Add SSH Key
+
+-- 3. Obtener la llave pública desde el servidor Rocky Linux --
+$ cat ~/.ssh/id_rsa.pub
+
+# Si no existe:
+
+$ ssh-keygen
+
+-- 4. Instalar Terraform (agregar repo HashiCorp e instalar) --
+$ sudo dnf config-manager --add-repo [https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo](https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo)
+$ sudo dnf install -y terraform
+
+-- Verificar instalación --
+$ terraform -version
+
+-- 5. Crear carpeta del proyecto y archivo principal --
+$ mkdir ~/terraform-digitalocean
+$ cd ~/terraform-digitalocean
+$ nano main.tf
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+## Titulo: main.tf
+------------------------------------------------------------------------------------------------------------------------------------------------------
+terraform {
+required_providers {
+digitalocean = {
+source  = "digitalocean/digitalocean"
+version = "~> 2.0"
+}
+}
+}
+
+provider "digitalocean" {
+token = var.do_token
+}
+
+variable "do_token" {}
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- 6. Crear archivo de variables (terraform.tfvars) y pegar el token --
+$ nano terraform.tfvars
+
+## Contenido:
+
+## do_token = "<TOKEN_API_DIGITALOCEAN>"
+
+-- 7. Inicializar Terraform --
+$ terraform init
+
+-- 8. Añadir recurso droplet al main.tf (ejemplo) --
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+## Titulo: main.tf y añadir
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+resource "digitalocean_droplet" "OS3vm" {
+image    = "ubuntu-22-04-x64"
+name     = "OS3vm"
+region   = "nyc1"
+size     = "s-1vcpu-1gb"
+ssh_keys = [ "PUBLIC_KEY_FINGERPRINT" ]
+}
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- 9. Validar configuración --
+$ terraform validate
+
+-- 10. Aplicar cambios (desplegar VM) --
+$ terraform apply
+
+-- 11. Confirmar en el panel de DigitalOcean que el droplet fue creado --
+
+-- 12. Conectarse por SSH al droplet --
+$ ssh root@DIRECCION_IP
+
+--> Nota: Reemplazar `PUBLIC_KEY_FINGERPRINT` por la huella (fingerprint) de la llave subida a DigitalOcean y `DIRECCION_IP` por la IP pública asignada al droplet.
+
+
+=========================================================================================================================
+
+# Comandos usados practica 3 (Instalación y configuración de Ansible / gestión de hosts Windows y Linux):
+
+=========================================================================================================================
+
+-- Instalar Ansible en Rocky Linux (Control Node) --
+$ sudo dnf install epel-release -y
+$ sudo dnf install ansible -y
+
+-- Instalar pywinrm para administrar Windows desde Ansible --
+$ pip install pywinrm
+$ pip3 install pywinrm
+
+# Si pip3 no está instalado:
+
+$ sudo dnf install python3-pip -y
+
+--> Nota: `pywinrm` permite que Ansible se comunique con hosts Windows vía WinRM.
+
+-- Crear usuario ansible en los clientes (Linux) --
+$ sudo useradd -m ansible
+$ sudo passwd ansible
+$ sudo usermod -aG wheel ansible
+
+-- Permitir sudo sin contraseña para el usuario ansible (Linux) --
+$ echo 'ansible ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ansible
+
+-- En Windows: crear usuario `ansible` y asignarlo al grupo Administradores (hacer desde GUI o PowerShell) --
+
+-- Configurar conexión SSH hacia clientes Linux --
+$ cat ~/.ssh/id_rsa.pub
+
+# Si no existe:
+
+$ ssh-keygen
+
+$ ssh-copy-id ansible@IP_DEL_CLIENTE_LINUX
+
+-- Configurar WinRM en Windows (PowerShell como Administrador) --
+
+# Ejecutar en PowerShell:
+
+winrm quickconfig
+winrm set winrm/config/service/auth '@{Basic="true"}'
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/listener?Address=*+Transport=HTTP '@{Port="5985"}'
+
+Set-Item -Path WSMan:\localhost\Service\AllowUnencrypted -Value $true
+Set-Item -Path WSMan:\localhost\Service\Auth\Basic -Value $true
+
+--> Advertencia: `AllowUnencrypted=true` y autenticación Basic deben usarse solo en entornos de laboratorio/seguro. Para producción, habilitar HTTPS (5986) y certificados.
+
+-- Crear inventario de Ansible (/etc/ansible/hosts) --
+$ sudo nano /etc/ansible/hosts
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+## Titulo: /etc/ansible/hosts
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+[linux]
+cliente1 ansible_host=IP_DEL_CLIENTE_LINUX ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become=true ansible_become_method=sudo
+
+[win]
+cliente2 ansible_host=IP_DEL_CLIENTE_WINDOWS ansible_user=ansible ansible_password=TU_CONTRASEÑA ansible_connection=winrm ansible_winrm_transport=basic ansible_port=5985 ansible_winrm_server_cert_validation=ignore
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- Probar conectividad desde Control Node --
+
+# Linux
+
+$ ansible linux -m ping
+
+# Windows
+
+$ ansible win -m win_ping
+
+--> Explicación general:
+
+* `ansible ping` y `win_ping` verifican que el Control Node se conecta correctamente a los hosts (SSH para Linux, WinRM para Windows). Si responden, Ansible puede ejecutar tareas y playbooks en los hosts.
+
+
+=========================================================================================================================
+
+# Comandos usados practica 4 (Comandos ad hoc (Ansible) en Rocky Linux):
+
+=========================================================================================================================
+
+-- Reiniciar hosts Linux desde Ansible --
+$ ansible linux -m reboot -b
+
+--> `-b` ejecuta la acción con privilegios (become = sudo).
+
+-- Copiar un archivo hacia un host Windows con win_copy --
+$ ansible win -m win_copy 
+-a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:/Users/ansible/Documents/prueba.txt' remote_src=yes"
+
+--> Explicación breve: `win_copy` copia archivos desde la controladora al host Windows. `remote_src=yes` indica que el archivo fuente está en la controladora (no remoto).
+
+
+=========================================================================================================================
+
+# Comandos usados practica 5 (Uso de Playbooks (Ansible) en Rocky Linux):
+
+=========================================================================================================================
+
+-- Playbook para instalar Notepad++ en Windows --
+
+1. Crear el archivo del playbook:
+   $ sudo nano notepad.yml
+------------------------------------------------------------------------------------------------------------------------------------------------------
+## Titulo: notepad.yml
+------------------------------------------------------------------------------------------------------------------------------------------------------
+* name: Instalar Notepad++ en Windows
+  hosts: win
+  tasks:
+
+  * name: Descargar instalador de Notepad++
+    win_get_url:
+    url: [https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe](https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe)
+    dest: C:\Users\ansible\Downloads\npp_installer.exe
+
+  * name: Instalar Notepad++
+    win_package:
+    path: C:\Users\ansible\Downloads\npp_installer.exe
+    state: present
+    arguments: /S
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+2. Ejecutar el playbook:
+   $ ansible-playbook notepad.yml
+
+3. Verificar en Windows → menú Inicio → buscar "Notepad++".
+
+-- Playbook para instalar NGINX en Linux (ajustado para Rocky Linux) --
+
+1. Crear el archivo:
+   $ sudo nano nginx.yml
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+## Titulo: nginx.yml
+------------------------------------------------------------------------------------------------------------------------------------------------------
+* name: Instalar NGINX en Linux
+  hosts: linux
+  become: true
+  tasks:
+
+  * name: Instalar nginx
+    apt:
+    name: nginx
+    state: present
+
+  * name: Iniciar y habilitar nginx
+    systemd:
+    name: nginx
+    enabled: true
+    state: started
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+2. Ejecutar el playbook:
+   $ ansible-playbook nginx.yml
+
+3. Verificar estado en los hosts Linux:
+   $ sudo systemctl status nginx
+
+--> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
+
+=========================================================================================================================
+
