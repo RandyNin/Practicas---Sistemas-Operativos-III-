@@ -19,9 +19,6 @@ $ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 - Muestra la línea en /etc/default/grub donde quedó el timeout (verificación rápida).
 $ grep '^GRUB_TIMEOUT' /etc/default/grub
 
-- Busca en grub.cfg la primera aparición de la opción timeout (comprobación de que la configuración se propagó).
-$ cat /boot/grub2/grub.cfg | grep -m1 timeout
-
 --- Recuperación de contraseña root vía GRUB (método usado) ---
 
 - (En el menú de GRUB) presionar 'e' sobre la entrada a editar
@@ -214,5 +211,6 @@ $ rm ~/id_ed25519.pub
 $ ssh randyn@10.0.0.249
 
 =========================================================================================================================
+
 
 
