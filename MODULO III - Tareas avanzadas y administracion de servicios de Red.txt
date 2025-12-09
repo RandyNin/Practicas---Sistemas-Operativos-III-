@@ -112,23 +112,23 @@ Contenido del script (explicado):
 ---------------------------------------------------------------------------------------------------------------
 
 #!/bin/bash
-- Shebang para bash.
+# Shebang para bash.
 
 ifconfig=$(ifconfig)
-- Ejecuta ifconfig y guarda toda su salida en la variable ifconfig_output.
+# Ejecuta ifconfig y guarda toda su salida en la variable ifconfig_output.
 
 echo -e "\n[i] Introduzca el nombre del archivo:"
 read name
-- Pide al usuario el nombre del archivo y lo lee en la variable name.
+# Pide al usuario el nombre del archivo y lo lee en la variable name.
 
 touch ~/Desktop/${name}
-- Crea un archivo vacío en el Escritorio con el nombre proporcionado.
+# Crea un archivo vacío en el Escritorio con el nombre proporcionado.
 
 echo "$ifconfig" > ~/Desktop/${name}
-- Escribe la salida de ifconfig dentro del archivo creado (sobrescribe si existe).
+# Escribe la salida de ifconfig dentro del archivo creado (sobrescribe si existe).
 
 echo -e "\n[+] Archivo creado en ~/Desktop/${name}\n"
-- Mensaje de confirmación.
+# Mensaje de confirmación.
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
@@ -211,6 +211,7 @@ $ rm ~/id_ed25519.pub
 $ ssh randyn@10.0.0.249
 
 =========================================================================================================================
+
 
 
 
