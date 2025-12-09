@@ -40,6 +40,9 @@ $ git clone https://github.com/aristocratos/bashtop.git
 - Entrar al directorio del proyecto clonado:
 $ cd bashtop/
 
+- Instalar make
+$ sudo dnf install make -y
+
 - Instalar utilizando el Makefile proporcionado por el proyecto:
 $ sudo make install
 -> Comentario: este comando copia los binarios y archivos de la herramienta al sistema según lo definido en el Makefile del repo.
@@ -185,6 +188,7 @@ $ sudo mount /dev/nvme0n2 /mnt/
 
 - Entrar a /mnt y comprobar que el archivo sigue presente:
 $ ls -l /mnt/
+
 
 
 
