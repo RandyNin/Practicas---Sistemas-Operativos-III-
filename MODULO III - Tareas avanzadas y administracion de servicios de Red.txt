@@ -67,28 +67,28 @@ $ su
 - Abre el editor para crear/editar el script.
 $ vim backup.sh
 
----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
 Contenido del script (explicado línea por línea):
----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
 #!/bin/bash
-- Shebang: indica que el script se ejecuta con bash.
+# Shebang: indica que el script se ejecuta con bash.
 
+# Guarda la fecha y hora actual en formato dd-mm-yyyy_HH-MM en la variable date.
 date=$(date +"%d-%m-%Y_%H-%M")
-- Guarda la fecha y hora actual en formato dd-mm-yyyy_HH-MM en la variable date.
 
+# Guarda el nombre del usuario que ejecuta el script.
 user=$(whoami)
-- Guarda el nombre del usuario que ejecuta el script.
 
+# Crea el directorio ~/back_up si no existe (-p evita error si ya existe).
 mkdir -p ~/back_up
-- Crea el directorio ~/back_up si no existe (-p evita error si ya existe).
 
 if [ "$user" != "root" ]; then
     tar -cf /home/${user}/back_up/${date}.tar /home/${user}/* &>/dev/null && echo -e "\n[+] Backup realizado...\n"
 else
     tar -cf /root/back_up/${date}.tar /root/* &>/dev/null && echo -e "\n[+] Backup realizado...\n"
 fi
----------------------------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------
 
 - Crea un archivo tar con todo el contenido del directorio home del usuario ejecutor.
   - `tar -cf` crea el fichero tar.
@@ -214,4 +214,5 @@ $ rm ~/id_ed25519.pub
 $ ssh randyn@10.0.0.249
 
 =========================================================================================================================
+
 
