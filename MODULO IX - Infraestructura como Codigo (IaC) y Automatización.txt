@@ -237,16 +237,16 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 ## Titulo: notepad.yml
 ------------------------------------------------------------------------------------------------------------------------------------------------------
-* name: Instalar Notepad++ en Windows
+- name: Instalar Notepad++ en Windows
   hosts: win
   tasks:
 
-  * name: Descargar instalador de Notepad++
+  - name: Descargar instalador de Notepad++
     win_get_url:
     url: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe
     dest: C:\Users\ansible\Downloads\npp_installer.exe
 
-  * name: Instalar Notepad++
+  - name: Instalar Notepad++
     win_package:
     path: C:\Users\ansible\Downloads\npp_installer.exe
     state: present
@@ -268,17 +268,17 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 ## Titulo: nginx.yml
 ------------------------------------------------------------------------------------------------------------------------------------------------------
-* name: Instalar NGINX en Linux
+- name: Instalar NGINX en Linux
   hosts: linux
   become: true
   tasks:
 
-  * name: Instalar nginx
+  - name: Instalar nginx
     apt:
     name: nginx
     state: present
 
-  * name: Iniciar y habilitar nginx
+  - name: Iniciar y habilitar nginx
     systemd:
     name: nginx
     enabled: true
@@ -296,6 +296,7 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
 --> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
 
 =========================================================================================================================
+
 
 
 
