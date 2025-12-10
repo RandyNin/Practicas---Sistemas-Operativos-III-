@@ -10,7 +10,7 @@
   $ sudo dnf install -y dnf-plugins-core
 
 - Añadir el repositorio oficial de Docker
-  $ sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo](https://download.docker.com/linux/centos/docker-ce.repo
+  $ sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
 - Instalar Docker Engine
   $ sudo dnf install -y docker-ce docker-compose-plugin
