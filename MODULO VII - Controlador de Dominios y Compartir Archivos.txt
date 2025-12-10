@@ -192,6 +192,8 @@ $ sudo firewall-cmd --reload
 - Desde el explorador de archivos o Ejecutar (Windows+R), ingresar:
  \\ip_del_servidor
 
+--> Nota: Dar permisos de edicion a otros usuarios para poder editar desde Windows
+
 - Windows pedirá:
   + Usuario de Samba (nombre_usuario)
   + Contraseña configurada con smbpasswd
@@ -417,6 +419,7 @@ $ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
 =========================================================================================================================
 
 FIN DEL DOCUMENTO.
+
 
 
 
