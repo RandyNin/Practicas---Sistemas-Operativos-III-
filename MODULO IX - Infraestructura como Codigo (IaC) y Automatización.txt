@@ -8,10 +8,10 @@
 $ sudo tee /etc/yum.repos.d/webmin.repo <<EOF
 [Webmin]
 name=Webmin Distribution Neutral
-baseurl=[https://download.webmin.com/download/yum](https://download.webmin.com/download/yum)
+baseurl=https://download.webmin.com/download/yum
 enabled=1
 gpgcheck=1
-gpgkey=[https://download.webmin.com/jcameron-key.asc](https://download.webmin.com/jcameron-key.asc)
+gpgkey=https://download.webmin.com/jcameron-key.asc
 EOF
 
 -- Instalar Webmin --
@@ -297,5 +297,6 @@ $ ansible win -m win_copy
 --> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
 
 =========================================================================================================================
+
 
 
