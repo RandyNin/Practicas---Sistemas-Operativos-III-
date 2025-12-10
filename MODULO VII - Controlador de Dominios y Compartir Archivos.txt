@@ -422,7 +422,7 @@ $ host -t SRV _ldap._tcp.so3.inet 127.0.0.1
 
 --- Crear usuario en AD (ejemplo 'lanegracubana') ---
 - Crea el usuario en el Active Directory.
-$ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
+$ sudo /usr/local/samba/bin/samba-tool user create 'lanegracubana'
 
 --- Instrucciones en la máquina Windows cliente (resumen para exposición) ---
 - Configurar la IP del servidor Samba como servidor DNS primario en la configuración de red del cliente Windows.
@@ -433,6 +433,7 @@ $ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
 =========================================================================================================================
 
 FIN DEL DOCUMENTO.
+
 
 
 
