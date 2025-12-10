@@ -272,7 +272,7 @@ Contenido del archivo de configuración (EN EL SERVIDOR 1):
 ---------------------------------------------------------------------------------------------------------------
 vrrp_instance VI_1 {
     state MASTER
-    interface ens256
+    interface ens160
     virtual_router_id 51
     priority 99
     advert_int 1
@@ -321,5 +321,6 @@ $ sudo systemctl enable keepalived --now
 - De esta manera ya estaría hecha la configuración.
 
 - Podemos pasar a verificar cómo el servicio web va pasando de un nodo a otro utilizando una misma dirección IP.
+
 
 - Prueba: acceder desde el navegador a http://192.168.153.100 y ver qué servidor responde; luego apagar el servidor activo y verificar que el otro toma el control automáticamente.
