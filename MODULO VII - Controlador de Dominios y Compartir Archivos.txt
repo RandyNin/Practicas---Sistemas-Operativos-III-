@@ -380,12 +380,26 @@ $ sudo systemctl enable --now samba
 
 --- Configurar Firewall para servicios AD/DC ---
 $ sudo firewall-cmd --permanent --add-service=ldap
-$ sudo firewall-cmd --permanent --add-service=ldaps
-$ sudo firewall-cmd --permanent --add-service=kerberos
-$ sudo firewall-cmd --permanent --add-service=dns
+sudo firewall-cmd --permanent --add-service=ldaps
+sudo firewall-cmd --permanent --add-service=kerberos
+sudo firewall-cmd --permanent --add-service=dns
 
-$ sudo firewall-cmd --permanent --add-port=53,88,135,139,389,445,464,636,3268,3269/tcp
-$ sudo firewall-cmd --permanent --add-port=53,88,123,138,389,464/udp
+$ sudo firewall-cmd --permanent --add-port=53/tcp
+sudo firewall-cmd --permanent --add-port=88/tcp
+sudo firewall-cmd --permanent --add-port=135-139/tcp
+sudo firewall-cmd --permanent --add-port=389/tcp
+sudo firewall-cmd --permanent --add-port=445/tcp
+sudo firewall-cmd --permanent --add-port=464/tcp
+sudo firewall-cmd --permanent --add-port=636/tcp
+sudo firewall-cmd --permanent --add-port=3268-3269/tcp
+
+$ sudo firewall-cmd --permanent --add-port=53/udp
+sudo firewall-cmd --permanent --add-port=88/udp
+sudo firewall-cmd --permanent --add-port=123/udp
+sudo firewall-cmd --permanent --add-port=138/udp
+sudo firewall-cmd --permanent --add-port=389/udp
+sudo firewall-cmd --permanent --add-port=464/udp
+
 $ sudo firewall-cmd --reload
 
 --> Explicación: abre puertos necesarios para LDAP, Kerberos, SMB, DNS y servicios de dominio.
@@ -419,6 +433,7 @@ $ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
 =========================================================================================================================
 
 FIN DEL DOCUMENTO.
+
 
 
 
