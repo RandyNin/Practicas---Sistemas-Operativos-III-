@@ -243,7 +243,7 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
 
   * name: Descargar instalador de Notepad++
     win_get_url:
-    url: [https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe](https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe)
+    url: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe
     dest: C:\Users\ansible\Downloads\npp_installer.exe
 
   * name: Instalar Notepad++
@@ -296,6 +296,7 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
 --> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
 
 =========================================================================================================================
+
 
 
 
