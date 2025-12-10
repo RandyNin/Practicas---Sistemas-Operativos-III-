@@ -219,8 +219,7 @@ $ ansible linux -m reboot -b
 --> `-b` ejecuta la acción con privilegios (become = sudo).
 
 -- Copiar un archivo hacia un host Windows con win_copy --
-$ ansible win -m win_copy 
--a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:/Users/ansible/Documents/prueba.txt' remote_src=yes"
+$ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:/Users/ansible/Documents/prueba.txt' remote_src=yes"
 
 --> Explicación breve: `win_copy` copia archivos desde la controladora al host Windows. `remote_src=yes` indica que el archivo fuente está en la controladora (no remoto).
 
@@ -297,6 +296,7 @@ $ ansible win -m win_copy
 --> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
 
 =========================================================================================================================
+
 
 
 
