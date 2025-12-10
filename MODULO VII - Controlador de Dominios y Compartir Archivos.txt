@@ -411,7 +411,7 @@ $ sudo firewall-cmd --reload
 $ sudo /usr/local/samba/bin/samba-tool domain level show
 
 - Listar usuarios del AD para verificar provisión.
-$ /usr/local/samba/bin/samba-tool user list
+$ sudo /usr/local/samba/bin/samba-tool user list
 
 - Probar conexiones SMB locales con smbclient.
 $ smbclient -L localhost -U Administrator
@@ -433,6 +433,7 @@ $ /usr/local/samba/bin/samba-tool user create 'lanegracubana'
 =========================================================================================================================
 
 FIN DEL DOCUMENTO.
+
 
 
 
