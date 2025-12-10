@@ -241,16 +241,16 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
   hosts: win
   tasks:
 
-  - name: Descargar instalador de Notepad++
-    win_get_url:
-    url: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe
-    dest: C:\Users\ansible\Downloads\npp_installer.exe
+    - name: Descargar instalador de Notepad++
+      win_get_url:
+        url: "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe"
+        dest: "C:\\Users\\ansible\\Downloads\\npp_installer.exe"
 
-  - name: Instalar Notepad++
-    win_package:
-    path: C:\Users\ansible\Downloads\npp_installer.exe
-    state: present
-    arguments: /S
+    - name: Instalar Notepad++
+      win_package:
+        path: "C:\\Users\\ansible\\Downloads\\npp_installer.exe"
+        state: present
+        arguments: /S
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -273,19 +273,21 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
   become: true
   tasks:
 
-  - name: Instalar nginx
-    apt:
-    name: nginx
-    state: present
+    - name: Instalar nginx
+      apt:
+        name: nginx
+        state: present
 
-  - name: Iniciar y habilitar nginx
-    systemd:
-    name: nginx
-    enabled: true
-    state: started
+    - name: Iniciar y habilitar nginx
+      systemd:
+        name: nginx
+        enabled: true
+        state: started
+
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------
+--> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
 
 2. Ejecutar el playbook:
    $ ansible-playbook nginx.yml
@@ -293,9 +295,9 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
 3. Verificar estado en los hosts Linux:
    $ sudo systemctl status nginx
 
---> Nota: Se usa el módulo `apt` en lugar de `dnf` porque Ubuntu utiliza APT. El playbook instala, inicia y habilita nginx para que arranque en el boot.
 
 =========================================================================================================================
+
 
 
 
