@@ -1,0 +1,97 @@
+=========================================================================================================================
+
+# Comandos usados práctica (Instalación y configuración de Issabel PBX en VM Rocky Linux 8 en la nube):
+
+=========================================================================================================================
+
+-- 1. Crear el Droplet en DigitalOcean (Rocky Linux 8) --
+* Seleccionar Rocky Linux 8
+* Plan básico ($6 o $8)
+* Región cualquiera
+* Autenticación por contraseña o SSH
+
+-- Conexión inicial por SSH --
+$ ssh root@IP_DE_LA_VM
+
+-- Actualizar sistema --
+$ yum update -y
+
+-- Instalar herramientas necesarias --
+$ yum install wget -y
+
+=========================================================================================================================
+
+-- 2. Descargar e iniciar instalador de Issabel PBX --
+
+$ wget http://repo.issabel.org/issabel5-netinstall.sh
+$ chmod +x issabel5-netinstall.sh
+$ ./issabel5-netinstall.sh
+
+### Durante la instalación elegir:
+* Versión de Asterisk → Asterisk 16 o 18
+* Crear contraseña para MariaDB
+* Crear usuario y contraseña del portal web Issabel
+
+=========================================================================================================================
+
+-- 3. Reiniciar y entrar nuevamente al servidor --
+
+$ ssh root@IP_DE_LA_VM
+
+-- Desactivar fail2ban para evitar bloqueos --
+$ sudo systemctl stop fail2ban
+$ sudo systemctl disable fail2ban
+
+=========================================================================================================================
+
+-- 4. Acceder al panel web de Issabel --
+
+Abrir en el navegador:
+
+http://IP_DE_LA_VM/
+
+Iniciar sesión con:
+Usuario: admin  
+Contraseña: (la creada durante instalación)
+
+=========================================================================================================================
+
+-- 5. Crear extensiones SIP (PBX → PBX Configuration → Extensions) --
+
+Ruta en Issabel:
+PBX → PBX Configuration → Extensions → Add Extension → Generic PJSIP Device
+
+### Extensión del profesor:
+Extension: 2220  
+Display Name: Profesor  
+Secret: Teletubies123$  
+Nat: Yes
+Submit → Apply Config
+
+### Extensión del estudiante:
+Extension: 2221  
+Display Name: Randy  
+Secret: Teletubies123$ 
+Nat: Yes
+Submit → Apply Config
+
+=========================================================================================================================
+
+-- 6. Configurar Softphone --
+
+Datos de ejemplo para configurar extensión 2221:
+
+User / Extension: 2221  
+Password: (secret creado)  
+Domain / Host: IP_DE_LA_VM  
+SIP Port: 5060  
+Transport: UDP
+
+=========================================================================================================================
+
+-- 7. Pruebas requeridas --
+
+* Llamar desde 2221 hacia 2220 en presencia del profesor.
+* Confirmar funcionamiento bidireccional de audio.
+
+=========================================================================================================================
