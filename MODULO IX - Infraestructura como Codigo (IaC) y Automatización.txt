@@ -296,7 +296,78 @@ $ ansible win -m win_copy -a "src='C:/Users/ansible/Desktop/prueba.txt' dest='C:
    $ sudo systemctl status nginx
 
 
+=========================================================
+EXTRA: Playbooks para crear users + instalar herramientas
+=========================================================
+
+$ nano create_user_and_install_bashtop.yml
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+- name: Crear usuario y agregarlo al grupo wheel + instalar bashtop
+  hosts: linux
+  become: true
+  tasks:
+    - name: Crear usuario adrian123
+      user:
+        name: adrian123
+        state: present
+        groups: wheel
+        append: yes
+
+    - name: Instalar bashtop
+      dnf:
+        name: bashtop
+        state: present
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+$ ansible-playbook create_user_and_install_bashtop.yml
+
+=================================================
+
+=================================================
+
+$ nano create_user_and_install_notepadpp.yml
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+- name: Crear usuario en Windows con permisos de administrador e instalar Notepad++
+  hosts: win
+  tasks:
+    - name: Crear usuario adrian123
+      win_user:
+        name: adrian123
+        password: "F07030409"
+        state: present
+
+    - name: Agregar usuario adrian123 al grupo Administradores
+      win_group_membership:
+        name: Administrators
+        members:
+          - adrian123
+        state: present
+
+    - name: Descargar instalador de Notepad++
+      win_get_url:
+        url: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.Installer.x64.exe
+        dest: C:\\Users\\ansible\\Downloads\\npp_installer.exe
+
+    - name: Instalar Notepad++
+      win_package:
+        path: C:\\Users\\ansible\\Downloads\\npp_installer.exe
+        state: present
+        arguments: /S
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+$ ansible-playbook create_user_and_install_notepadpp.yml
+
+
 =========================================================================================================================
+
 
 
 
